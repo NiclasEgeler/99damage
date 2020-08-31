@@ -1,5 +1,4 @@
 # 99damage
-# 99Damage
 ## A NodeJS API for [liga.99damage.de](http://liga.99damage.de)
 
 ## How to install
