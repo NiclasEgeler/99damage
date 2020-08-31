@@ -6,7 +6,7 @@ todo
 
 ### How to use 
 ```
-import { Csgo99Damage } from './99damage';
+import { Csgo99Damage } from "99damage/src/99damage";
 
 Csgo99Damage.login('username', 'passwd').then(() => {
 
