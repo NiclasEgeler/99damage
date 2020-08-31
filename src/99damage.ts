@@ -21,7 +21,7 @@ export class Csgo99Damage {
             // If key exists
             var db = new JsonDB('db.json');
             if (db.exists(`/${username}/key`)) {
-                // todo check if key is still valid (parse this stupid date string)
+                // todo check if key is still valid 
                 // return key
                 this.token = db.getData(`/${username}/key`);
                 resolve();
@@ -149,7 +149,7 @@ export class Csgo99Damage {
      * Requires login
      */
     public getMatchDay(day: number) {
-        // todo (holt spieltag)
+        // todo (get match days from day)
     }
 
     /**
@@ -157,7 +157,7 @@ export class Csgo99Damage {
      * Requires login
      */
     public getSeason() {
-        // todo (holt gesamte Season)
+        // todo (get the complete season)
     }
 
     private static async loadSite(url: string): Promise<CheerioStatic> {
