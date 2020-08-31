@@ -93,10 +93,16 @@ export class Csgo99Damage {
         var team2 = '';
 
         $('.content-match-head-team-titles a').each((index, e) => {
-            if (index == 0)
-                team1 = e.firstChild.firstChild.data;
-            else
-                team2 = e.firstChild.firstChild.data;
+            if (index == 0) {
+                if (e.firstChild.firstChild.data) {
+                    team1 = e.firstChild.firstChild.data;
+                }
+            }
+            else {
+                if (e.firstChild.firstChild.data) {
+                    team2 = e.firstChild.firstChild.data;
+                }
+            }
         });
 
         var matchDate = new Date(+result.data.time * 1000);
