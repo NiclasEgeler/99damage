@@ -1,0 +1,6 @@
+node_modules/
+build/
+nodemon.json
+tsconfig.json
+src/test.ts
+db.json
