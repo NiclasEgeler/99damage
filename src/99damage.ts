@@ -48,6 +48,7 @@ export class Csgo99Damage {
                     var expireDate = new Date(sessionInfo[1].substr(sessionInfo[1].indexOf('=') + 1, sessionInfo[1].length))
                     db.push(`/${username}/key`, token);
                     db.push(`/${username}/date`, expireDate);
+                    this.token = token;
                     resolve();
 
                 }).catch(e => {
@@ -66,7 +67,7 @@ export class Csgo99Damage {
         var match: IMatch;
         var $ = await this.loadSite('https://liga.99damage.de/de/start');
         var userInfo = $('.landing-league-user');
-        var currentMatch = userInfo.find('h3:contains(Aktuelles Match)').parent().find('.txt-content a')[0].attribs.href;
+        var currentMatch = userInfo.find('h3:contains(Aktuelles Match)').parent().find('.txt-content a')[0]?.attribs?.href;
         if (currentMatch)
             match = await this.getMatchInfo(currentMatch);
         else
