@@ -1,11 +1,7 @@
-import { load } from 'cheerio';
 import axios from 'axios';
 import { stringify } from 'querystring';
-import { rejects } from 'assert';
 import { JsonDB } from 'node-json-db';
-import { toUnicode } from 'punycode';
 import * as cheerio from 'cheerio';
-import { resolve } from 'path';
 import { IMatch } from './model/match';
 import { ITeam } from './model/team';
 import { Data } from './model/ajax.model';
