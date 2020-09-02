@@ -2,3 +2,4 @@ node_modules/
 build/
 nodemon.json
 db.json
+index.ts
