@@ -1,14 +1,25 @@
 {
   "name": "99damage",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.1.2",
+  "description": "A NodeJS API for liga.99damage.de",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "99damage",
+    "csgo",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/NiclasEgeler/99damage.git"
+  },
+  "bugs": {
+    "url": "https://github.com/NiclasEgeler/99damage/issues"
+  },
+  "author": "Niclas Egeler & Benedikt Bertsch",
   "license": "ISC",
   "devDependencies": {
     "@types/cheerio": "^0.22.21",

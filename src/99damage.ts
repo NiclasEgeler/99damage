@@ -24,9 +24,7 @@ export class Csgo99Damage {
             // Read Key from Db if aviable
             // If key exists
             var db = new JsonDB('db.json');
-            if (db.exists(`/${username}/key`)) {
-                // todo check if key is still valid 
-                // return key
+            if (db.exists(`/${username}/key`) && db.exists(`/${username}/date`) && new Date(db.getData(`/${username}/key`)) > new Date()) {
                 this.token = db.getData(`/${username}/key`);
                 resolve();
             }
@@ -56,8 +54,7 @@ export class Csgo99Damage {
                     resolve();
 
                 }).catch(e => {
-                    console.log(e);
-                    reject('Unknown login error')
+                    reject('Unknown login error: ' + e)
                 });
             }
         });
@@ -106,6 +103,7 @@ export class Csgo99Damage {
         } as IMatch;
     }
 
+
     private static async getLineups(ajax: AxiosResponse<Data>, $: CheerioStatic):Promise<ILineup>{
         var lineups: ILineup = {rightTeam: [], leftTeam: []};
         for (let index = 0; index < ajax.data.lineups['1'].length; index++) {
@@ -153,6 +151,8 @@ export class Csgo99Damage {
         }
         return lineups
     }
+
+
 
     /**
      * getCurrentSeason

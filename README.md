@@ -1,8 +1,11 @@
 # 99damage
 ## A NodeJS API for [liga.99damage.de](http://liga.99damage.de)
 
+[![npm](https://img.shields.io/npm/dt/99damage.svg?maxAge=604800)](https://www.npmjs.com/package/99damage)
+[![npm](https://img.shields.io/npm/dm/99damage.svg?maxAge=604800)](https://www.npmjs.com/package/99damage)
+
 ## How to install
-todo
+```npm install 99damage```
 
 ### How to use 
 ```
