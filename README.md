@@ -2,7 +2,7 @@
 ## A NodeJS API for [liga.99damage.de](http://liga.99damage.de)
 
 ## How to install
-todo
+```npm install 99damage```
 
 ### How to use 
 ```
