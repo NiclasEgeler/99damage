@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import { stringify } from 'querystring';
 import { JsonDB } from 'node-json-db';
 import * as cheerio from 'cheerio';
@@ -9,6 +9,8 @@ import { Data } from './model/ajax.model';
 import SteamID from 'steamid';
 import { IPlayer } from './model/player';
 import { IPlayday } from './model/playday';
+import { ILineup } from './model/lineup';
+import { ILineupplayer } from './model/lineupplayer';
 
 export class Csgo99Damage {
 
@@ -89,30 +91,67 @@ export class Csgo99Damage {
         var teams = $('.content-match-head-team-titles a')
         var leftTeam = await this.getTeamByURL(teams[0].attribs.href)
         var rightTeam = await this.getTeamByURL(teams[1].attribs.href)
+        var lineups = await this.getLineups(result, $)
+        var leftlineup: ILineupplayer[] = lineups.leftTeam
+        var rightlineup: ILineupplayer[] = lineups.rightTeam
         var matchDate = new Date(+result.data.time * 1000);
         return {
             matchDate: matchDate,
             matchName: title,
             matchUrl: url,
             leftTeam: leftTeam,
-            rightTeam: rightTeam
+            rightTeam: rightTeam,
+            leftlineup,
+            rightlineup
         } as IMatch;
     }
 
-    /**
-     * getCurrentPlayDay     
-     * Requires login
-     */
-    public static async getCurrentPlayDay() {
-        // todo (get match days from day)
-    }
+    private static async getLineups(ajax: AxiosResponse<Data>, $: CheerioStatic):Promise<ILineup>{
+        var lineups: ILineup = {rightTeam: [], leftTeam: []};
+        for (let index = 0; index < ajax.data.lineups['1'].length; index++) {
+            var ready:boolean;
+            var standin:boolean;
+            var confirmed:boolean;
+            if (ajax.data.lineups['1'][index].ready == 0) {
+                ready = false;
+            } else {
+                ready = true;
+            }
+            if (ajax.data.lineups['1'][index].standin == 0) {
+                standin = false;
+            } else {
+                standin = true;
+            }
+            if (ajax.data.lineups['1'][index].status_stu.msg == "Bestätigter Spieler") {
+                confirmed = true
+            } else {
+                confirmed = false
+            }
+            lineups.leftTeam.push({name: ajax.data.lineups['1'][index].name, steamId: new SteamID(ajax.data.lineups['1'][index].gameaccounts[0].replace('steam', 'STEAM')), standin, ready, confirmed})
+        }
 
-    /**
-     * getPlayDayInfo    
-     * Requires login
-     */
-    public getPlayDayInfo(day: number) {
-        // todo (get match days from day)
+        for (let index = 0; index < ajax.data.lineups['2'].length; index++) {
+            var ready:boolean;
+            var standin:boolean;
+            var confirmed:boolean;
+            if (ajax.data.lineups['2'][index].ready == 0) {
+                ready = false;
+            } else {
+                ready = true;
+            }
+            if (ajax.data.lineups['2'][index].standin == 0) {
+                standin = false;
+            } else {
+                standin = true;
+            }
+            if (ajax.data.lineups['2'][index].status_stu.msg == "Bestätigter Spieler") {
+                confirmed = true
+            } else {
+                confirmed = false
+            }
+            lineups.rightTeam.push({name: ajax.data.lineups['2'][index].name, steamId: new SteamID(ajax.data.lineups['2'][index].gameaccounts[0].replace('steam', 'STEAM')), standin, ready, confirmed})
+        }
+        return lineups
     }
 
     /**
