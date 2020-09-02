@@ -201,7 +201,7 @@ export class Csgo99Damage {
                     }
                 }
             }
-        } else {
+        } else if (+division.split('.')[0] > 2) {
             for (let index = 0; index < sections.length; index++) {
                 if (sections[index].children[0].data?.split(' ')[1] == division.split('.')[0]) {
                     var divisions = sections[index].parent.children[3].children[1].children
@@ -224,20 +224,71 @@ export class Csgo99Damage {
                     }
                 }
             }
+        } else if (+division.split('.')[0] == 2) {
+            for (let i = 0; i < sections[1].parent.children[3].children[1].children.length; i++) {
+                if (sections[1].parent.children[3].children[1].children[i].type != "text") {
+                    if (sections[1].parent.children[3].children[1].children[i].children[0].children[1].children[0].children[0].data?.split(' ')[1] == division) {
+                        var divisionsite = await axios.get(sections[1].parent.children[3].children[1].children[i].children[0].children[1].attribs.href)
+                        $ = cheerio.load(divisionsite.data)
+                        var teamstable = $('.section-content')[0].children[1].children[3].children
+                        for (let i = 0; i < teamstable.length; i++) {
+                            if (teamstable[i].type == "tag") {
+                                var singleteam = await this.getTeamByURL(teamstable[i].children[3].children[0].attribs.href)
+                                if (singleteam.name != "Team nicht gefunden") {
+                                    teams.push(singleteam)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            var divisionsite = await axios.get(sections[0].parent.children[3].children[1].children[0].children[1].attribs.href)
+            $ = cheerio.load(divisionsite.data)
+            var teamstable = $('.section-content')[0].children[1].children[3].children
+            for (let i = 0; i < teamstable.length; i++) {
+                if (teamstable[i].type == "tag") {
+                    var singleteam = await this.getTeamByURL(teamstable[i].children[3].children[0].attribs.href)
+                    if (singleteam.name != "Team nicht gefunden") {
+                        teams.push(singleteam)
+                    }
+                }
+            }
         }
         return teams
     }
 
     public static async getTeamByURL(url: string): Promise<ITeam> {
-        var team: ITeam
-        team = { name: "Test", players: [], initial: "" }
+        var team: ITeam = { name: "", rank: 0, players: [], country: "", initial: "" }
         var site = await axios.get(url, { validateStatus: () => true })
         var $ = cheerio.load(site.data)
+        var basicinformation = $('.content-basic-info')
+        var country = basicinformation.find('.txt-info')[0].parent.children[1].data
+        if (!country) {
+            throw ('Country not found.')
+        }
+        team.country = country
         var TeamName = $('.page-title')
         var name = TeamName.find('h1')[0].children[0].data
         if (name == undefined) {
             throw ('Team not found.')
         }
+        var divisionurl = $('.content-icon-info')[0].children[1].children[2].attribs.href
+        var divisionsite = await axios.get(divisionurl)
+        var $division = cheerio.load(divisionsite.data)
+        var teamrank = ""
+        for (let v = 0; v < $division('.list-section')[0].children[3].children[1].children[3].children.length; v++) {
+            if ($division('.list-section')[0].children[3].children[1].children[3].children[v].type != "text") {
+                if ($division('.list-section')[0].children[3].children[1].children[3].children[v].children[3].children[0].attribs.href == url) {
+                    var rank = $division('.list-section')[0].children[3].children[1].children[3].children[v].children[1].children[0].children[0].children[0].data
+                    if (!rank) {
+                        throw ('Rank not found.')
+                    }
+                    teamrank = rank.slice(0, rank.length - 1)
+                }
+            }
+        }
+        team.rank = +teamrank
         var InitialAndName = this.getInitialAndTeamname(name.split(' '))
         team.name = InitialAndName[1]
         team.initial = InitialAndName[0]
@@ -253,8 +304,8 @@ export class Csgo99Damage {
             }
             var playername = playernamecheck
             var playerid = playeridcheck
-            var inSeasonActiveString = TeamPlayers.find('li .txt-info')[index].children[4].children[0].data 
-            var inSeasonActive: boolean;  
+            var inSeasonActiveString = TeamPlayers.find('li .txt-info')[index].children[4].children[0].data
+            var inSeasonActive: boolean;
             var teamRole = TeamPlayers.find('li .txt-subtitle')[index].children[0].data
             if (!inSeasonActiveString) {
                 throw ("Player activestatus not found")
@@ -262,12 +313,12 @@ export class Csgo99Damage {
             if (!teamRole) {
                 throw ("Player teamrole not found")
             }
-            if(inSeasonActiveString == "Bestätigter Spieler"){
+            if (inSeasonActiveString == "Bestätigter Spieler") {
                 inSeasonActive = true
             } else {
                 inSeasonActive = false
             }
-            var player: IPlayer = { name: playername, steamId: new SteamID(playerid.replace('steam', 'STEAM')), inSeasonActive, teamRole}
+            var player: IPlayer = { name: playername, steamId: new SteamID(playerid.replace('steam', 'STEAM')), inSeasonActive, teamRole }
             team.players.push(player)
         }
         return team
@@ -276,13 +327,17 @@ export class Csgo99Damage {
     private static getInitialAndTeamname(splittedname: string[]): string[] {
         var initialAndTeamname: string[] = [];
         var Teamname: string = ""
+        var Initialname: string = ""
+        var initialstart: boolean = false
         for (let index = 0; index < splittedname.length; index++) {
-            if (splittedname[index][0] == '(') {
-                initialAndTeamname.push(splittedname[index].slice(1, splittedname[index].length - 1))
-            } else {
+            if (splittedname[index][0] != '(' && initialstart == false) {
                 Teamname += splittedname[index] + " "
+            } else {
+                initialstart = true
+                Initialname += splittedname[index] + " "
             }
         }
+        initialAndTeamname.push(Initialname.slice(1, Initialname.length - 2))
         initialAndTeamname.push(Teamname.slice(0, Teamname.length - 1))
         return initialAndTeamname
     }

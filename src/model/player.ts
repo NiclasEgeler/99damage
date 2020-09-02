@@ -6,5 +6,3 @@ export interface IPlayer{
     inSeasonActive: boolean;
     teamRole: string;
 }
-
-//role: Admin, Captain oder player?

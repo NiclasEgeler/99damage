@@ -4,9 +4,6 @@ export interface ITeam {
     name: string;
     players: IPlayer[];
     initial: string;
+    country: string;
+    rank: number;
 }
-
-//ToDo:
-//Teamkürzel
-//Teamlanguage (von der Division holen)
-//Rank in der aktuellen Season
