@@ -4,9 +4,11 @@ import { JsonDB } from 'node-json-db';
 import * as cheerio from 'cheerio';
 import { IMatch } from './model/match';
 import { ITeam } from './model/team';
+import { ISeason } from './model/season'
 import { Data } from './model/ajax.model';
 import SteamID from 'steamid';
-
+import { IPlayer } from './model/player';
+import { IPlayday } from './model/playday';
 
 export class Csgo99Damage {
 
@@ -65,7 +67,7 @@ export class Csgo99Damage {
      */
     public static async getCurrentMatch(): Promise<IMatch> {
         var match: IMatch;
-        var $ = await this.loadSite('https://liga.99damage.de/de/start');
+        var $ = await this.loadSiteWithCookie('https://liga.99damage.de/de/start');
         var userInfo = $('.landing-league-user');
         var currentMatch = userInfo.find('h3:contains(Aktuelles Match)').parent().find('.txt-content a')[0]?.attribs?.href;
         if (currentMatch)
@@ -77,64 +79,17 @@ export class Csgo99Damage {
 
     /**
      * getMatchInfo
-     * Requires login
+     * Requires no login
      */
     public static async getMatchInfo(url: string): Promise<IMatch> {
         var $ = await this.loadSite(url);
         var title = $('.page-title').find('h1').text();
-
         var matchId = url.match(/(?<=\/)\d+/);
         var result = await axios.get<Data>(`https://liga.99damage.de/ajax/leagues_match?id=${matchId}&action=lineup_get&language=de`);
-
-        var team1 = '';
-        var team2 = '';
-
-        $('.content-match-head-team-titles a').each((index, e) => {
-            if (index == 0) {
-                if (e.firstChild.firstChild.data) {
-                    team1 = e.firstChild.firstChild.data;
-                }
-            }
-            else {
-                if (e.firstChild.firstChild.data) {
-                    team2 = e.firstChild.firstChild.data;
-                }
-            }
-        });
-
+        var teams = $('.content-match-head-team-titles a')
+        var leftTeam = await this.getTeamByURL(teams[0].attribs.href)
+        var rightTeam = await this.getTeamByURL(teams[1].attribs.href)
         var matchDate = new Date(+result.data.time * 1000);
-
-        var leftTeam: ITeam = {
-            players: [],
-            name: team1
-        } as ITeam;
-        var rightTeam: ITeam = {
-            players: [],
-            name: team2
-        } as ITeam;
-
-        if (result.data.lineups['1'].length > 0) {
-            var lineup = result.data.lineups['2'];
-            lineup.forEach(e => {
-                var id = (e.gameaccounts[0].replace('steam', 'STEAM'));
-                leftTeam.players.push({
-                    name: e.name,
-                    steamId: new SteamID(id)
-                })
-            });
-        }
-        if (result.data.lineups['2'].length > 0) {
-            var lineup = result.data.lineups['2'];
-            lineup.forEach(e => {
-                var id = (e.gameaccounts[0].replace('steam', 'STEAM'));
-                rightTeam.players.push({
-                    name: e.name,
-                    steamId: new SteamID(id)
-                })
-            });
-
-        }
-
         return {
             matchDate: matchDate,
             matchName: title,
@@ -145,27 +100,205 @@ export class Csgo99Damage {
     }
 
     /**
-     * getMatchDay     
+     * getCurrentPlayDay     
      * Requires login
      */
-    public getMatchDay(day: number) {
+    public static async getCurrentPlayDay() {
         // todo (get match days from day)
     }
 
     /**
-     * getSeason
+     * getPlayDayInfo    
      * Requires login
      */
-    public getSeason() {
-        // todo (get the complete season)
+    public getPlayDayInfo(day: number) {
+        // todo (get match days from day)
     }
 
-    private static async loadSite(url: string): Promise<CheerioStatic> {
+    /**
+     * getCurrentSeason
+     * Requires login
+     */
+    public static async getCurrentSeason(): Promise<ISeason> {
+        var season: ISeason;
+        var $ = await this.loadSiteWithCookie('https://liga.99damage.de/de/start')
+        var userInfo = $('.landing-league-user');
+        var divisionURL = userInfo.find('a:contains(Division)')[0]?.attribs?.href
+        if (divisionURL) {
+            season = await this.getSeasonInfoByDivisionURL(divisionURL);
+        }
+        else
+            throw ('No current division');
+        return season;
+    }
+
+    /**
+     * getSeason
+     * Requires no login
+     */
+    public static async getSeasonInfoByDivisionURL(divisionurl: string): Promise<ISeason> {
+        var $ = await this.loadSiteWithCookie(divisionurl)
+        var headline = $('.page-title')
+        var headlinestring = headline.find('h1:contains(Division)')[0]?.children[0]?.data
+        if (headlinestring == undefined) {
+            throw ("No division headline found.")
+        }
+        var headlinesplit = headlinestring.split(' ')
+        var season = +headlinesplit[1].substring(1, headlinesplit[1].length - 1)
+        var division = headlinesplit[3]
+        var teams = await this.getTeamsByDivision(division)
+        var playdays = await this.getAllPlaydaysByDivisionURL(divisionurl)
+        return {
+            season,
+            division,
+            playdays,
+            teams
+        } as ISeason
+    }
+
+    public static async getAllPlaydaysByDivisionURL(url: string): Promise<IPlayday[]> {
+        var playdays: IPlayday[] = [];
+        var $ = await this.loadSite(url)
+        for (let i = 0; i < $('h3').length - 2; i++) {
+            var playday: IPlayday = { Matches: [], Playday: 0 }
+            var playdaynumber = $('h3')[i].children[0].data?.split(' ')[1]
+            if (!playdaynumber) {
+                throw ('No playday')
+            }
+            playday.Playday = +playdaynumber
+            playday.Matches.push(await this.getMatchInfo($('h3')[i].parent.children[3].children[1].children[1].children[1].children[0].attribs.href))
+            playdays.push(playday)
+        }
+        return playdays
+    }
+
+    /**
+     * getTeamsByDivision
+     * @param division 
+     * If starter division "Starter 1" else just ex: "5.1" 
+     */
+    public static async getTeamsByDivision(division: string): Promise<ITeam[]> {
+        var teams: ITeam[] = []
+        var site = await axios.get('https://liga.99damage.de/de/leagues/99dmg')
+        var $ = cheerio.load(site.data)
+        var sections = $('.content-subsection-toggle')
+        if (division.includes("Starter")) {
+            var starter = sections[sections.length - 1].parent.children[3].children[1].children
+            for (let index = 0; index < starter.length; index++) {
+                if (starter[index].name) {
+                    if (division == starter[index].children[0].children[0].data) {
+                        var divisionsite = await axios.get(starter[index].children[0].children[0].parent.attribs.href)
+                        $ = cheerio.load(divisionsite.data)
+                        var teamstable = $('.section-content')[0].children[1].children[3].children
+                        for (let i = 0; i < teamstable.length; i++) {
+                            if (teamstable[i].type == "tag") {
+                                var singleteam = await this.getTeamByURL(teamstable[i].children[3].children[0].attribs.href)
+                                if (singleteam.name != "Team nicht gefunden") {
+                                    teams.push(singleteam)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            for (let index = 0; index < sections.length; index++) {
+                if (sections[index].children[0].data?.split(' ')[1] == division.split('.')[0]) {
+                    var divisions = sections[index].parent.children[3].children[1].children
+                    for (let i = 0; i < divisions.length; i++) {
+                        if (divisions[i].name == "li") {
+                            if (divisions[i].children[0].children[0].data?.split(' ')[1] == division) {
+                                var divisionsite = await axios.get(divisions[i].children[0].attribs.href)
+                                $ = cheerio.load(divisionsite.data)
+                                var teamstable = $('.section-content')[0].children[1].children[3].children
+                                for (let i = 0; i < teamstable.length; i++) {
+                                    if (teamstable[i].type == "tag") {
+                                        var singleteam = await this.getTeamByURL(teamstable[i].children[3].children[0].attribs.href)
+                                        if (singleteam.name != "Team nicht gefunden") {
+                                            teams.push(singleteam)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return teams
+    }
+
+    public static async getTeamByURL(url: string): Promise<ITeam> {
+        var team: ITeam
+        team = { name: "Test", players: [], initial: "" }
+        var site = await axios.get(url, { validateStatus: () => true })
+        var $ = cheerio.load(site.data)
+        var TeamName = $('.page-title')
+        var name = TeamName.find('h1')[0].children[0].data
+        if (name == undefined) {
+            throw ('Team not found.')
+        }
+        var InitialAndName = this.getInitialAndTeamname(name.split(' '))
+        team.name = InitialAndName[1]
+        team.initial = InitialAndName[0]
+        var TeamPlayers = $('.content-portrait-grid-l')
+        for (let index = 0; index < TeamPlayers.find('li').length - 1; index++) {
+            var playernamecheck = TeamPlayers.find('li')[index]?.children[3]?.children[0]?.children[0]?.data
+            var playeridcheck = TeamPlayers.find('li .txt-info')[index]?.children[1]?.children[0]?.data
+            if (playeridcheck == undefined) {
+                throw ('Player ID not found.')
+            }
+            if (playernamecheck == undefined) {
+                throw ('Player name not found.')
+            }
+            var playername = playernamecheck
+            var playerid = playeridcheck
+            var inSeasonActiveString = TeamPlayers.find('li .txt-info')[index].children[4].children[0].data 
+            var inSeasonActive: boolean;  
+            var teamRole = TeamPlayers.find('li .txt-subtitle')[index].children[0].data
+            if (!inSeasonActiveString) {
+                throw ("Player activestatus not found")
+            }
+            if (!teamRole) {
+                throw ("Player teamrole not found")
+            }
+            if(inSeasonActiveString == "Bestätigter Spieler"){
+                inSeasonActive = true
+            } else {
+                inSeasonActive = false
+            }
+            var player: IPlayer = { name: playername, steamId: new SteamID(playerid.replace('steam', 'STEAM')), inSeasonActive, teamRole}
+            team.players.push(player)
+        }
+        return team
+    }
+
+    private static getInitialAndTeamname(splittedname: string[]): string[] {
+        var initialAndTeamname: string[] = [];
+        var Teamname: string = ""
+        for (let index = 0; index < splittedname.length; index++) {
+            if (splittedname[index][0] == '(') {
+                initialAndTeamname.push(splittedname[index].slice(1, splittedname[index].length - 1))
+            } else {
+                Teamname += splittedname[index] + " "
+            }
+        }
+        initialAndTeamname.push(Teamname.slice(0, Teamname.length - 1))
+        return initialAndTeamname
+    }
+
+    private static async loadSiteWithCookie(url: string): Promise<CheerioStatic> {
         var site = await axios.get(url, {
             headers: {
                 'cookie': `freakms_login_token=${this.token}`
             }
         });
+        var $ = cheerio.load(site.data);
+        return $;
+    }
+
+    private static async loadSite(url: string): Promise<CheerioStatic> {
+        var site = await axios.get(url);
         var $ = cheerio.load(site.data);
         return $;
     }
