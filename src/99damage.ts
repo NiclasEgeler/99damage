@@ -22,9 +22,7 @@ export class Csgo99Damage {
             // Read Key from Db if aviable
             // If key exists
             var db = new JsonDB('db.json');
-            if (db.exists(`/${username}/key`)) {
-                // todo check if key is still valid 
-                // return key
+            if (db.exists(`/${username}/key`) && db.exists(`/${username}/date`) && new Date(db.getData(`/${username}/key`)) > new Date()) {
                 this.token = db.getData(`/${username}/key`);
                 resolve();
             }
@@ -54,8 +52,7 @@ export class Csgo99Damage {
                     resolve();
 
                 }).catch(e => {
-                    console.log(e);
-                    reject('Unknown login error')
+                    reject('Unknown login error: ' + e)
                 });
             }
         });
@@ -97,22 +94,6 @@ export class Csgo99Damage {
             leftTeam: leftTeam,
             rightTeam: rightTeam
         } as IMatch;
-    }
-
-    /**
-     * getCurrentPlayDay     
-     * Requires login
-     */
-    public static async getCurrentPlayDay() {
-        // todo (get match days from day)
-    }
-
-    /**
-     * getPlayDayInfo    
-     * Requires login
-     */
-    public getPlayDayInfo(day: number) {
-        // todo (get match days from day)
     }
 
     /**
