@@ -83,11 +83,11 @@ export class Csgo99Damage {
         var matchId = url.match(/(?<=\/)\d+/);
         var result = await axios.get<Data>(`https://liga.99damage.de/ajax/leagues_match?id=${matchId}&action=lineup_get&language=de`);
         var teams = $('.content-match-head-team-titles a')
-        var leftTeam = await this.getTeamByURL(teams[0].attribs.href)
-        var rightTeam = await this.getTeamByURL(teams[1].attribs.href)
-        var lineups = await this.getLineups(result, $)
-        var leftlineup: ILineupplayer[] = lineups.leftTeam
-        var rightlineup: ILineupplayer[] = lineups.rightTeam
+        var leftTeam = await this.getTeamByURL(teams[0].attribs.href);
+        var rightTeam = await this.getTeamByURL(teams[1].attribs.href);
+        var lineups = await this.getLineups(result, $);
+        var leftlineup: ILineupplayer[] = lineups.leftTeam;
+        var rightlineup: ILineupplayer[] = lineups.rightTeam;
         var matchDate = new Date(+result.data.time * 1000);
         return {
             matchDate: matchDate,
@@ -118,11 +118,11 @@ export class Csgo99Damage {
                 standin = true;
             }
             if (ajax.data.lineups['1'][index].status_stu.msg == "Bestätigter Spieler") {
-                confirmed = true
+                confirmed = true;
             } else {
-                confirmed = false
+                confirmed = false;
             }
-            lineups.leftTeam.push({ name: ajax.data.lineups['1'][index].name, steamId: new SteamID(ajax.data.lineups['1'][index].gameaccounts[0].replace('steam', 'STEAM')), standin, ready, confirmed })
+            lineups.leftTeam.push({ name: ajax.data.lineups['1'][index].name, steamId: new SteamID(ajax.data.lineups['1'][index].gameaccounts[0].replace('steam', 'STEAM')), standin, ready, confirmed });
         }
 
         for (let index = 0; index < ajax.data.lineups['2'].length; index++) {
@@ -137,13 +137,13 @@ export class Csgo99Damage {
                 standin = true;
             }
             if (ajax.data.lineups['2'][index].status_stu.msg == "Bestätigter Spieler") {
-                confirmed = true
+                confirmed = true;
             } else {
-                confirmed = false
+                confirmed = false;
             }
-            lineups.rightTeam.push({ name: ajax.data.lineups['2'][index].name, steamId: new SteamID(ajax.data.lineups['2'][index].gameaccounts[0].replace('steam', 'STEAM')), standin, ready, confirmed })
+            lineups.rightTeam.push({ name: ajax.data.lineups['2'][index].name, steamId: new SteamID(ajax.data.lineups['2'][index].gameaccounts[0].replace('steam', 'STEAM')), standin, ready, confirmed });
         }
-        return lineups
+        return lineups;
     }
 
 
@@ -160,8 +160,9 @@ export class Csgo99Damage {
         if (divisionURL) {
             season = await Csgo99Damage.getSeasonInfoByDivisionURL(divisionURL);
         }
-        else
+        else {
             throw ('No current division');
+        }
         return season;
     }
 
@@ -170,39 +171,39 @@ export class Csgo99Damage {
      * Requires no login
      */
     public static async getSeasonInfoByDivisionURL(divisionurl: string): Promise<ISeason> {
-        var $ = await this.loadSite(divisionurl)
-        var headline = $('.page-title')
-        var headlinestring = headline.find('h1:contains(Division)')[0]?.children[0]?.data
+        var $ = await this.loadSite(divisionurl);
+        var headline = $('.page-title');
+        var headlinestring = headline.find('h1:contains(Division)')[0]?.children[0]?.data;
         if (headlinestring == undefined) {
-            throw ("No division headline found.")
+            throw ("No division headline found.");
         }
-        var headlinesplit = headlinestring.split(' ')
-        var season = +headlinesplit[1].substring(1, headlinesplit[1].length - 1)
-        var division = headlinesplit[3]
-        var teams = await this.getTeamsByDivision(division)
-        var playdays = await this.getAllPlaydaysByDivisionURL(divisionurl)
+        var headlinesplit = headlinestring.split(' ');
+        var season = +headlinesplit[1].substring(1, headlinesplit[1].length - 1);
+        var division = headlinesplit[3];
+        var teams = await this.getTeamsByDivision(division);
+        var playdays = await this.getAllPlaydaysByDivisionURL(divisionurl);
         return {
             season,
             division,
             playdays,
             teams
-        } as ISeason
+        } as ISeason;
     }
 
     public static async getAllPlaydaysByDivisionURL(url: string): Promise<IPlayday[]> {
         var playdays: IPlayday[] = [];
-        var $ = await this.loadSite(url)
+        var $ = await this.loadSite(url);
         for (let i = 0; i < $('h3').length - 2; i++) {
-            var playday: IPlayday = { Matches: [], Playday: 0 }
-            var playdaynumber = $('h3')[i].children[0].data?.split(' ')[1]
+            var playday: IPlayday = { Matches: [], Playday: 0 };
+            var playdaynumber = $('h3')[i].children[0].data?.split(' ')[1];
             if (!playdaynumber) {
-                throw ('No playday')
+                throw ('No playday');
             }
-            playday.Playday = +playdaynumber
-            playday.Matches.push(await this.getMatchInfo($('h3')[i].parent.children[3].children[1].children[1].children[1].children[0].attribs.href))
-            playdays.push(playday)
+            playday.Playday = +playdaynumber;
+            playday.Matches.push(await this.getMatchInfo($('h3')[i].parent.children[3].children[1].children[1].children[1].children[0].attribs.href));
+            playdays.push(playday);
         }
-        return playdays
+        return playdays;
     }
 
     /**
@@ -211,146 +212,146 @@ export class Csgo99Damage {
      * If starter division "Starter 1" else just ex: "5.1" 
      */
     public static async getTeamsByDivision(division: string): Promise<ITeam[]> {
-        var teams: ITeam[] = []
-        var site = await axios.get('https://liga.99damage.de/de/leagues/99dmg')
-        var $ = cheerio.load(site.data)
-        var link: string = ""
+        var teams: ITeam[] = [];
+        var site = await axios.get('https://liga.99damage.de/de/leagues/99dmg');
+        var $ = cheerio.load(site.data);
+        var link: string = "";
         //Get all Tables
-        var sections = $('.content-subsection-toggle')
+        var sections = $('.content-subsection-toggle');
         //If searched Division is Starter ->
         if (division.includes("Starter")) {
-            var selecteddivision = $(".content-link-grid")[$(".content-link-grid").length - 1].children
-            link = this.filterdDivision(selecteddivision, division, false)
+            var selecteddivision = $(".content-link-grid")[$(".content-link-grid").length - 1].children;
+            link = this.filterdDivision(selecteddivision, division, false);
             //Check if searched Division is above division 2, because of differentials in the table structure
         } else if (+division.split('.')[0] > 2) {
-            var selecteddivision = sections[+division.split('.')[0] - 1].parent.children[3].children[1].children
-            link = this.filterdDivision(selecteddivision, division, false)
+            var selecteddivision = sections[+division.split('.')[0] - 1].parent.children[3].children[1].children;
+            link = this.filterdDivision(selecteddivision, division, false);
             //Check if its Division 2
         } else if (+division.split('.')[0] == 2) {
-            var selecteddivision = $('.content-subsection-container').find('.widget-list-boxed')[0].children
-            link = this.filterdDivision(selecteddivision, division, true)
+            var selecteddivision = $('.content-subsection-container').find('.widget-list-boxed')[0].children;
+            link = this.filterdDivision(selecteddivision, division, true);
             //Has to be Division 1
         } else {
-            link = sections[0].parent.children[3].children[1].children[0].children[1].attribs.href
+            link = sections[0].parent.children[3].children[1].children[0].children[1].attribs.href;
         }
-        return await this.getTeamArray(link)
+        return await this.getTeamArray(link);
     }
 
     private static filterdDivision(division: CheerioElement[], searcheddivision: string, division2: boolean): string {
-        var link: string = ""
+        var link: string = "";
         division.some((selecteddivision) => {
             if (division2) {
                 if (selecteddivision.name == "li" && selecteddivision?.children[0]?.children[1]?.children[0]?.children[0]?.data?.split(' ')[1] == searcheddivision) {
-                    link = selecteddivision.children[0]?.children[1].attribs.href
-                    return true
+                    link = selecteddivision.children[0]?.children[1].attribs.href;
+                    return true;
                 }
             } else {
                 if (selecteddivision.name == "li" && selecteddivision?.children[0]?.children[0]?.data?.split(' ')[1] == searcheddivision) {
-                    link = selecteddivision.children[0].attribs.href
-                    return true
+                    link = selecteddivision.children[0].attribs.href;
+                    return true;
                 }
             }
 
         })
-        return link
+        return link;
     }
 
     private static async getTeamArray(url: string): Promise<ITeam[]> {
-        var teams: ITeam[] = []
-        var divisionsite = await axios.get(url)
-        var $ = cheerio.load(divisionsite.data)
-        var teamstable = $('.section-content')[0].children[1].children[3].children
+        var teams: ITeam[] = [];
+        var divisionsite = await axios.get(url);
+        var $ = cheerio.load(divisionsite.data);
+        var teamstable = $('.section-content')[0].children[1].children[3].children;
         for (let i = 0; i < teamstable.length; i++) {
             if (teamstable[i].type == "tag") {
-                var singleteam = await Csgo99Damage.getTeamByURL(teamstable[i].children[3].children[0].attribs.href)
+                var singleteam = await Csgo99Damage.getTeamByURL(teamstable[i].children[3].children[0].attribs.href);
                 if (singleteam.name != "Team nicht gefunden") {
-                    teams.push(singleteam)
+                    teams.push(singleteam);
                 }
             }
         }
-        return teams
+        return teams;
     }
 
     public static async getTeamByURL(url: string): Promise<ITeam> {
-        var team: ITeam = { name: "", rank: 0, players: [], country: "", initial: "" }
-        var site = await axios.get(url, { validateStatus: () => true })
-        var $ = cheerio.load(site.data)
-        var basicinformation = $('.content-basic-info')
-        var country = basicinformation.find('.txt-info')[0].parent.children[1].data
+        var team: ITeam = { name: "", rank: 0, players: [], country: "", initial: "" };
+        var site = await axios.get(url, { validateStatus: () => true });
+        var $ = cheerio.load(site.data);
+        var basicinformation = $('.content-basic-info');
+        var country = basicinformation.find('.txt-info')[0].parent.children[1].data;
         if (!country) {
-            throw ('Country not found.')
+            throw ('Country not found.');
         }
-        team.country = country
-        var TeamName = $('.page-title')
-        var name = TeamName.find('h1')[0].children[0].data
+        team.country = country;
+        var TeamName = $('.page-title');
+        var name = TeamName.find('h1')[0].children[0].data;
         if (name == undefined) {
-            throw ('Team not found.')
+            throw ('Team not found.');
         }
-        var divisionurl = $('.content-icon-info')[0].children[1].children[2].attribs.href
-        var divisionsite = await axios.get(divisionurl)
-        var $division = cheerio.load(divisionsite.data)
-        var teamrank = ""
+        var divisionurl = $('.content-icon-info')[0].children[1].children[2].attribs.href;
+        var divisionsite = await axios.get(divisionurl);
+        var $division = cheerio.load(divisionsite.data);
+        var teamrank = "";
         for (let v = 0; v < $division('.list-section')[0].children[3].children[1].children[3].children.length; v++) {
             if ($division('.list-section')[0].children[3].children[1].children[3].children[v].type != "text" && $division('.list-section')[0].children[3].children[1].children[3].children[v].children[3].children[0].attribs.href == url) {
-                var rank = $division('.list-section')[0].children[3].children[1].children[3].children[v].children[1].children[0].children[0].children[0].data
+                var rank = $division('.list-section')[0].children[3].children[1].children[3].children[v].children[1].children[0].children[0].children[0].data;
                 if (!rank) {
-                    throw ('Rank not found.')
+                    throw ('Rank not found.');
                 }
-                teamrank = rank.slice(0, rank.length - 1)
+                teamrank = rank.slice(0, rank.length - 1);
             }
         }
-        team.rank = +teamrank
-        var InitialAndName = this.getInitialAndTeamname(name.split(' '))
-        team.name = InitialAndName[1]
-        team.initial = InitialAndName[0]
-        var TeamPlayers = $('.content-portrait-grid-l')
+        team.rank = +teamrank;
+        var InitialAndName = this.getInitialAndTeamname(name.split(' '));
+        team.name = InitialAndName[1];
+        team.initial = InitialAndName[0];
+        var TeamPlayers = $('.content-portrait-grid-l');
         for (let index = 0; index < TeamPlayers.find('li').length - 1; index++) {
-            var playernamecheck = TeamPlayers.find('li')[index]?.children[3]?.children[0]?.children[0]?.data
-            var playeridcheck = TeamPlayers.find('li .txt-info')[index]?.children[1]?.children[0]?.data
+            var playernamecheck = TeamPlayers.find('li')[index]?.children[3]?.children[0]?.children[0]?.data;
+            var playeridcheck = TeamPlayers.find('li .txt-info')[index]?.children[1]?.children[0]?.data;
             if (playeridcheck == undefined) {
-                throw ('Player ID not found.')
+                throw ('Player ID not found.');
             }
             if (playernamecheck == undefined) {
-                throw ('Player name not found.')
+                throw ('Player name not found.');
             }
-            var playername = playernamecheck
-            var playerid = playeridcheck
-            var inSeasonActiveString = TeamPlayers.find('li .txt-info')[index].children[4].children[0].data
+            var playername = playernamecheck;
+            var playerid = playeridcheck;
+            var inSeasonActiveString = TeamPlayers.find('li .txt-info')[index].children[4].children[0].data;
             var inSeasonActive: boolean;
-            var teamRole = TeamPlayers.find('li .txt-subtitle')[index].children[0].data
+            var teamRole = TeamPlayers.find('li .txt-subtitle')[index].children[0].data;
             if (!inSeasonActiveString) {
-                throw ("Player activestatus not found")
+                throw ("Player activestatus not found");
             }
             if (!teamRole) {
-                throw ("Player teamrole not found")
+                throw ("Player teamrole not found");
             }
             if (inSeasonActiveString == "Bestätigter Spieler") {
-                inSeasonActive = true
+                inSeasonActive = true;
             } else {
-                inSeasonActive = false
+                inSeasonActive = false;
             }
-            var player: IPlayer = { name: playername, steamId: new SteamID(playerid.replace('steam', 'STEAM')), inSeasonActive, teamRole }
-            team.players.push(player)
+            var player: IPlayer = { name: playername, steamId: new SteamID(playerid.replace('steam', 'STEAM')), inSeasonActive, teamRole };
+            team.players.push(player);
         }
-        return team
+        return team;
     }
 
     private static getInitialAndTeamname(splittedname: string[]): string[] {
         var initialAndTeamname: string[] = [];
-        var Teamname: string = ""
-        var Initialname: string = ""
-        var initialstart: boolean = false
+        var Teamname: string = "";
+        var Initialname: string = "";
+        var initialstart: boolean = false;
         for (let index = 0; index < splittedname.length; index++) {
             if (splittedname[index][0] != '(' && initialstart == false) {
-                Teamname += splittedname[index] + " "
+                Teamname += splittedname[index] + " ";
             } else {
-                initialstart = true
-                Initialname += splittedname[index] + " "
+                initialstart = true;
+                Initialname += splittedname[index] + " ";
             }
         }
         initialAndTeamname.push(Initialname.slice(1, Initialname.length - 2))
-        initialAndTeamname.push(Teamname.slice(0, Teamname.length - 1))
-        return initialAndTeamname
+        initialAndTeamname.push(Teamname.slice(0, Teamname.length - 1));
+        return initialAndTeamname;
     }
 
     private async loadSiteWithCookie(url: string): Promise<CheerioStatic> {
