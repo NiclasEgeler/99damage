@@ -9,17 +9,16 @@
 
 ### How to use 
 ```
-import { Csgo99Damage } from "./src/99damage";
+import { Csgo99Damage } from "99damage/src/99damage";
 
-init()
-
-async function init() {
-    var login = await Csgo99Damage.login("username", "password")
-    var season = await login.getCurrentSeason()
-    var match = await login.getCurrentMatch()
+Csgo99Damage.login("username", "password").then(async (user) => {
+    var season = await user.getCurrentSeason()
+    var match = await user.getCurrentMatch()
+    var season = await user.getCurrentSeason()
+    var match = await user.getCurrentMatch()
     var division21Teams = await Csgo99Damage.getTeamsByDivision("2.1")
     var starter20Teams = await Csgo99Damage.getTeamsByDivision("Starter 20")
     var division1Teams = await Csgo99Damage.getTeamsByDivision("1")
     ...
-}
+});
 ```
