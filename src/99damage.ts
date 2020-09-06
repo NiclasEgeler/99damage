@@ -13,9 +13,8 @@ import { ILineup } from "./model/lineup";
 import { ILineupplayer } from "./model/lineupplayer";
 
 export class Csgo99Damage {
-
     private token: string;
-    private static username: string = "";
+
     constructor(token: string) {
         this.token = token;
     }
@@ -26,20 +25,19 @@ export class Csgo99Damage {
     public static async login(username: string, password: string): Promise<Csgo99Damage> {
         // Read Key from Db if aviable
         // If key exists
-        Csgo99Damage.username = username;
         var token: string;
         var db = new JsonDB("db.json");
-        if (db.exists(`/${Csgo99Damage.username}/key`) && db.exists(`/${Csgo99Damage.username}/date`) && new Date(db.getData(`/${Csgo99Damage.username}/date`)) > new Date()) {
+        if (db.exists(`/${username}/key`) && db.exists(`/${username}/date`) && new Date(db.getData(`/${username}/date`)) > new Date()) {
             token = db.getData(`/${username}/key`);
             return new Csgo99Damage(token);
         }
         else {
             // request new Key
             var data = {
-                type: 'login',
+                type: "login",
                 user: username,
                 passwd: password,
-                language: 'de'
+                language: "de"
             };
             var axiosReturn = await axios.post("https://liga.99damage.de/ajax/gsnet", stringify(data), {
                 headers: {
@@ -50,11 +48,11 @@ export class Csgo99Damage {
             if (axiosReturn.data?.err) {
                 throw (axiosReturn.data.err);
             }
-            var sessionInfo = axiosReturn.headers["set-cookie"][1].split(';');
+            var sessionInfo = axiosReturn.headers["set-cookie"][1].split(";");
             token = sessionInfo[0].substr(sessionInfo[0].indexOf("=") + 1, sessionInfo[0].length);
             var expireDate = new Date(sessionInfo[1].substr(sessionInfo[1].indexOf("=") + 1, sessionInfo[1].length));
-            db.push(`/${Csgo99Damage.username}/key`, token);
-            db.push(`/${Csgo99Damage.username}/date`, expireDate);
+            db.push(`/${username}/key`, token);
+            db.push(`/${username}/date`, expireDate);
             return new Csgo99Damage(token);
         }
     }
@@ -66,14 +64,14 @@ export class Csgo99Damage {
     public async getCurrentMatch(): Promise<IMatch> {
         var match: IMatch;
         var $ = await this.loadSiteWithCookie("https://liga.99damage.de/de/start");
-        var userInfo = $('.landing-league-user');
+        var userInfo = $(".landing-league-user");
         var currentMatch = userInfo.find("h3:contains(Aktuelles Match)").parent().find(".txt-content a")[0]?.attribs?.href;
         if (currentMatch) {
             match = await Csgo99Damage.getMatchInfo(currentMatch);
         } else {
             throw ("No current match found");
         }
-        return match; 
+        return match;
     }
 
     /**
@@ -82,10 +80,10 @@ export class Csgo99Damage {
      */
     public static async getMatchInfo(matchUrl: string): Promise<IMatch> {
         var $ = await this.loadSite(matchUrl);
-        var matchName = $('.page-title').find("h1").text();
-        var matchId = matchUrl.match(/(?<=\/)\d+/);
+        var matchName = $(".page-title").find("h1").text();
+        var matchId = matchUrl.split("/")[6].split("-")[0];
         var result = await axios.get<Data>(`https://liga.99damage.de/ajax/leagues_match?id=${matchId}&action=lineup_get&language=de`);
-        var teams = $('.content-match-head-team-titles a');
+        var teams = $(".content-match-head-team-titles a");
         var leftTeam = await this.getTeamByURL(teams[0].attribs.href);
         var rightTeam = await this.getTeamByURL(teams[1].attribs.href);
         var lineups = await this.getLineups(result);
@@ -108,43 +106,31 @@ export class Csgo99Damage {
         var ready: boolean;
         var standin: boolean;
         var confirmed: boolean;
-        for (let index = 0; index < ajax.data.lineups["1"].length; index++) {
-            if (ajax.data.lineups["1"][index].ready === 0) {
-                ready = false;
-            } else {
-                ready = true;
+        const keyArray = ["1", "2"]
+        keyArray.forEach((key, i) => {
+            for (let index = 0; index < ajax.data.lineups[key].length; index++) {
+                if (ajax.data.lineups[key][index].ready === 0) {
+                    ready = false;
+                } else {
+                    ready = true;
+                }
+                if (ajax.data.lineups[key][index].standin === 0) {
+                    standin = false;
+                } else {
+                    standin = true;
+                }
+                if (ajax.data.lineups[key][index].status_stu.msg === "Bestätigter Spieler") {
+                    confirmed = true;
+                } else {
+                    confirmed = false;
+                }
+                if (i === 0) {
+                    lineups.leftTeam.push({ name: ajax.data.lineups[key][index].name, steamId: new SteamID(ajax.data.lineups[key][index].gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
+                } else {
+                    lineups.rightTeam.push({ name: ajax.data.lineups[key][index].name, steamId: new SteamID(ajax.data.lineups[key][index].gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
+                }
             }
-            if (ajax.data.lineups["1"][index].standin === 0) {
-                standin = false;
-            } else {
-                standin = true;
-            }
-            if (ajax.data.lineups["1"][index].status_stu.msg === "Bestätigter Spieler") {
-                confirmed = true;
-            } else {
-                confirmed = false;
-            }
-            lineups.leftTeam.push({ name: ajax.data.lineups["1"][index].name, steamId: new SteamID(ajax.data.lineups["1"][index].gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
-        }
-
-        for (let index = 0; index < ajax.data.lineups["2"].length; index++) {
-            if (ajax.data.lineups["2"][index].ready === 0) {
-                ready = false;
-            } else {
-                ready = true;
-            }
-            if (ajax.data.lineups["2"][index].standin === 0) {
-                standin = false;
-            } else {
-                standin = true;
-            }
-            if (ajax.data.lineups["2"][index].status_stu.msg === "Bestätigter Spieler") {
-                confirmed = true;
-            } else {
-                confirmed = false;
-            }
-            lineups.rightTeam.push({ name: ajax.data.lineups["2"][index].name, steamId: new SteamID(ajax.data.lineups["2"][index].gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
-        }
+        });
         return lineups;
     }
 
@@ -156,14 +142,14 @@ export class Csgo99Damage {
      */
     public async getCurrentSeason(): Promise<ISeason> {
         var season: ISeason;
-        var $ = await this.loadSiteWithCookie('https://liga.99damage.de/de/start')
-        var userInfo = $('.landing-league-user');
-        var divisionURL = userInfo.find('a:contains(Division)')[0]?.attribs?.href
+        var $ = await this.loadSiteWithCookie("https://liga.99damage.de/de/start");
+        var userInfo = $(".landing-league-user");
+        var divisionURL = userInfo.find("a:contains(Division)")[0]?.attribs?.href;
         if (divisionURL) {
             season = await Csgo99Damage.getSeasonInfoByDivisionURL(divisionURL);
         }
         else {
-            throw ('No current division');
+            throw ("No current division");
         }
         return season;
     }
@@ -174,12 +160,12 @@ export class Csgo99Damage {
      */
     public static async getSeasonInfoByDivisionURL(divisionurl: string): Promise<ISeason> {
         var $ = await this.loadSite(divisionurl);
-        var headline = $('.page-title');
-        var headlinestring = headline.find('h1:contains(Division)')[0]?.children[0]?.data;
-        if (headlinestring == undefined) {
+        var headline = $(".page-title");
+        var headlinestring = headline.find("h1:contains(Division)")[0]?.children[0]?.data;
+        if (!headlinestring) {
             throw ("No division headline found.");
         }
-        var headlinesplit = headlinestring.split(' ');
+        var headlinesplit = headlinestring.split(" ");
         var season = +headlinesplit[1].substring(1, headlinesplit[1].length - 1);
         var division = headlinesplit[3];
         var teams = await this.getTeamsByDivision(division);
@@ -195,14 +181,14 @@ export class Csgo99Damage {
     public static async getAllPlaydaysByDivisionURL(url: string): Promise<IPlayday[]> {
         var playdays: IPlayday[] = [];
         var $ = await this.loadSite(url);
-        for (let i = 0; i < $('h3').length - 2; i++) {
+        for (let i = 0; i < $("h3").length - 2; i++) {
             var playday: IPlayday = { Matches: [], Playday: 0 };
-            var playdaynumber = $('h3')[i].children[0].data?.split(' ')[1];
+            var playdaynumber = $("h3")[i].children[0].data?.split(" ")[1];
             if (!playdaynumber) {
                 throw ('No playday');
             }
             playday.Playday = +playdaynumber;
-            playday.Matches.push(await this.getMatchInfo($('h3')[i].parent.children[3].children[1].children[1].children[1].children[0].attribs.href));
+            playday.Matches.push(await this.getMatchInfo($("h3")[i].parent.children[3].children[1].children[1].children[1].children[0].attribs.href));
             playdays.push(playday);
         }
         return playdays;
@@ -215,22 +201,23 @@ export class Csgo99Damage {
      */
     public static async getTeamsByDivision(division: string): Promise<ITeam[]> {
         var teams: ITeam[] = [];
-        var site = await axios.get('https://liga.99damage.de/de/leagues/99dmg');
+        var site = await axios.get("https://liga.99damage.de/de/leagues/99dmg");
         var $ = cheerio.load(site.data);
         var link: string = "";
+        var selecteddivision: CheerioElement[] = [];
         //Get all Tables
-        var sections = $('.content-subsection-toggle');
+        var sections = $(".content-subsection-toggle");
         //If searched Division is Starter ->
         if (division.includes("Starter")) {
-            var selecteddivision = $(".content-link-grid")[$(".content-link-grid").length - 1].children;
+            selecteddivision = $(".content-link-grid")[$(".content-link-grid").length - 1].children;
             link = this.filterdDivision(selecteddivision, division, false);
             //Check if searched Division is above division 2, because of differentials in the table structure
-        } else if (+division.split('.')[0] > 2) {
-            var selecteddivision = sections[+division.split('.')[0] - 1].parent.children[3].children[1].children;
+        } else if (+division.split(".")[0] > 2) {
+            selecteddivision = sections[+division.split(".")[0] - 1].parent.children[3].children[1].children;
             link = this.filterdDivision(selecteddivision, division, false);
             //Check if its Division 2
-        } else if (+division.split('.')[0] == 2) {
-            var selecteddivision = $('.content-subsection-container').find('.widget-list-boxed')[0].children;
+        } else if (+division.split(".")[0] == 2) {
+            selecteddivision = $(".content-subsection-container").find(".widget-list-boxed")[0].children;
             link = this.filterdDivision(selecteddivision, division, true);
             //Has to be Division 1
         } else {
@@ -243,12 +230,12 @@ export class Csgo99Damage {
         var link: string = "";
         division.some((selecteddivision) => {
             if (division2) {
-                if (selecteddivision.name == "li" && selecteddivision?.children[0]?.children[1]?.children[0]?.children[0]?.data?.split(' ')[1] == searcheddivision) {
+                if (selecteddivision.name === "li" && selecteddivision?.children[0]?.children[1]?.children[0]?.children[0]?.data?.split(" ")[1] === searcheddivision) {
                     link = selecteddivision.children[0]?.children[1].attribs.href;
                     return true;
                 }
             } else {
-                if (selecteddivision.name == "li" && selecteddivision?.children[0]?.children[0]?.data?.split(' ')[1] == searcheddivision) {
+                if (selecteddivision.name === "li" && selecteddivision?.children[0]?.children[0]?.data?.split(" ")[1] === searcheddivision) {
                     link = selecteddivision.children[0].attribs.href;
                     return true;
                 }
@@ -264,7 +251,7 @@ export class Csgo99Damage {
         var $ = cheerio.load(divisionsite.data);
         var teamstable = $('.section-content')[0].children[1].children[3].children;
         for (let i = 0; i < teamstable.length; i++) {
-            if (teamstable[i].type == "tag") {
+            if (teamstable[i].type === "tag") {
                 var singleteam = await Csgo99Damage.getTeamByURL(teamstable[i].children[3].children[0].attribs.href);
                 if (singleteam.name != "Team nicht gefunden") {
                     teams.push(singleteam);
@@ -286,7 +273,7 @@ export class Csgo99Damage {
         team.country = country;
         var TeamName = $('.page-title');
         var name = TeamName.find('h1')[0].children[0].data;
-        if (name == undefined) {
+        if (!name) {
             throw ('Team not found.');
         }
         var divisionurl = $('.content-icon-info')[0].children[1].children[2].attribs.href;
@@ -294,7 +281,7 @@ export class Csgo99Damage {
         var $division = cheerio.load(divisionsite.data);
         var teamrank = "";
         for (let v = 0; v < $division('.list-section')[0].children[3].children[1].children[3].children.length; v++) {
-            if ($division('.list-section')[0].children[3].children[1].children[3].children[v].type != "text" && $division('.list-section')[0].children[3].children[1].children[3].children[v].children[3].children[0].attribs.href == url) {
+            if ($division('.list-section')[0].children[3].children[1].children[3].children[v].type != "text" && $division('.list-section')[0].children[3].children[1].children[3].children[v].children[3].children[0].attribs.href === url) {
                 var rank = $division('.list-section')[0].children[3].children[1].children[3].children[v].children[1].children[0].children[0].children[0].data;
                 if (!rank) {
                     throw ('Rank not found.');
@@ -303,17 +290,17 @@ export class Csgo99Damage {
             }
         }
         team.rank = +teamrank;
-        var InitialAndName = this.getInitialAndTeamname(name.split(' '));
+        var InitialAndName = this.getInitialAndTeamname(name.split(" "));
         team.name = InitialAndName[1];
         team.initial = InitialAndName[0];
         var TeamPlayers = $('.content-portrait-grid-l');
         for (let index = 0; index < TeamPlayers.find('li').length - 1; index++) {
             var playernamecheck = TeamPlayers.find('li')[index]?.children[3]?.children[0]?.children[0]?.data;
             var playeridcheck = TeamPlayers.find('li .txt-info')[index]?.children[1]?.children[0]?.data;
-            if (playeridcheck == undefined) {
+            if (!playeridcheck) {
                 throw ('Player ID not found.');
             }
-            if (playernamecheck == undefined) {
+            if (!playernamecheck) {
                 throw ('Player name not found.');
             }
             var playername = playernamecheck;
@@ -327,7 +314,7 @@ export class Csgo99Damage {
             if (!teamRole) {
                 throw ("Player teamrole not found");
             }
-            if (inSeasonActiveString == "Bestätigter Spieler") {
+            if (inSeasonActiveString === "Bestätigter Spieler") {
                 inSeasonActive = true;
             } else {
                 inSeasonActive = false;
@@ -344,7 +331,7 @@ export class Csgo99Damage {
         var Initialname: string = "";
         var initialstart: boolean = false;
         for (let index = 0; index < splittedname.length; index++) {
-            if (splittedname[index][0] != '(' && initialstart == false) {
+            if (splittedname[index][0] != "(" && initialstart === false) {
                 Teamname += splittedname[index] + " ";
             } else {
                 initialstart = true;
