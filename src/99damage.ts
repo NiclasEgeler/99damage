@@ -106,30 +106,30 @@ export class Csgo99Damage {
         var ready: boolean;
         var standin: boolean;
         var confirmed: boolean;
-        const keyArray = ["1", "2"]
+        const keyArray = ["1", "2"];
         keyArray.forEach((key, i) => {
-            for (let index = 0; index < ajax.data.lineups[key].length; index++) {
-                if (ajax.data.lineups[key][index].ready === 0) {
+            ajax.data.lineups[key].forEach((player) => {
+                if (player.ready === 0) {
                     ready = false;
                 } else {
                     ready = true;
                 }
-                if (ajax.data.lineups[key][index].standin === 0) {
+                if (player.standin === 0) {
                     standin = false;
                 } else {
                     standin = true;
                 }
-                if (ajax.data.lineups[key][index].status_stu.msg === "Bestätigter Spieler") {
+                if (player.status_stu.msg === "Bestätigter Spieler") {
                     confirmed = true;
                 } else {
                     confirmed = false;
                 }
                 if (i === 0) {
-                    lineups.leftTeam.push({ name: ajax.data.lineups[key][index].name, steamId: new SteamID(ajax.data.lineups[key][index].gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
+                    lineups.leftTeam.push({ name: player.name, steamId: new SteamID(player.gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
                 } else {
-                    lineups.rightTeam.push({ name: ajax.data.lineups[key][index].name, steamId: new SteamID(ajax.data.lineups[key][index].gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
+                    lineups.rightTeam.push({ name: player.name, steamId: new SteamID(player.gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
                 }
-            }
+            })
         });
         return lineups;
     }
@@ -185,7 +185,7 @@ export class Csgo99Damage {
             var playday: IPlayday = { Matches: [], Playday: 0 };
             var playdaynumber = $("h3")[i].children[0].data?.split(" ")[1];
             if (!playdaynumber) {
-                throw ('No playday');
+                throw ("No playday");
             }
             playday.Playday = +playdaynumber;
             playday.Matches.push(await this.getMatchInfo($("h3")[i].parent.children[3].children[1].children[1].children[1].children[0].attribs.href));
@@ -216,7 +216,7 @@ export class Csgo99Damage {
             selecteddivision = sections[+division.split(".")[0] - 1].parent.children[3].children[1].children;
             link = this.filterdDivision(selecteddivision, division, false);
             //Check if its Division 2
-        } else if (+division.split(".")[0] == 2) {
+        } else if (+division.split(".")[0] === 2) {
             selecteddivision = $(".content-subsection-container").find(".widget-list-boxed")[0].children;
             link = this.filterdDivision(selecteddivision, division, true);
             //Has to be Division 1
@@ -240,8 +240,7 @@ export class Csgo99Damage {
                     return true;
                 }
             }
-
-        })
+        });
         return link;
     }
 
@@ -250,14 +249,14 @@ export class Csgo99Damage {
         var divisionsite = await axios.get(url);
         var $ = cheerio.load(divisionsite.data);
         var teamstable = $('.section-content')[0].children[1].children[3].children;
-        for (let i = 0; i < teamstable.length; i++) {
-            if (teamstable[i].type === "tag") {
-                var singleteam = await Csgo99Damage.getTeamByURL(teamstable[i].children[3].children[0].attribs.href);
-                if (singleteam.name != "Team nicht gefunden") {
+        teamstable.forEach(async (team) => {
+            if (team.type === "tag") {
+                var singleteam = await Csgo99Damage.getTeamByURL(team.children[3].children[0].attribs.href);
+                if (singleteam.name !== "Team nicht gefunden") {
                     teams.push(singleteam);
                 }
             }
-        }
+        })
         return teams;
     }
 
@@ -265,49 +264,49 @@ export class Csgo99Damage {
         var team: ITeam = { name: "", rank: 0, players: [], country: "", initial: "" };
         var site = await axios.get(url, { validateStatus: () => true });
         var $ = cheerio.load(site.data);
-        var basicinformation = $('.content-basic-info');
-        var country = basicinformation.find('.txt-info')[0].parent.children[1].data;
+        var basicinformation = $(".content-basic-info");
+        var country = basicinformation.find(".txt-info")[0].parent.children[1].data;
         if (!country) {
-            throw ('Country not found.');
+            throw ("Country not found.");
         }
         team.country = country;
-        var TeamName = $('.page-title');
-        var name = TeamName.find('h1')[0].children[0].data;
+        var TeamName = $(".page-title");
+        var name = TeamName.find("h1")[0].children[0].data;
         if (!name) {
-            throw ('Team not found.');
+            throw ("Team not found.");
         }
         var divisionurl = $('.content-icon-info')[0].children[1].children[2].attribs.href;
         var divisionsite = await axios.get(divisionurl);
         var $division = cheerio.load(divisionsite.data);
         var teamrank = "";
-        for (let v = 0; v < $division('.list-section')[0].children[3].children[1].children[3].children.length; v++) {
-            if ($division('.list-section')[0].children[3].children[1].children[3].children[v].type != "text" && $division('.list-section')[0].children[3].children[1].children[3].children[v].children[3].children[0].attribs.href === url) {
-                var rank = $division('.list-section')[0].children[3].children[1].children[3].children[v].children[1].children[0].children[0].children[0].data;
+        $division(".list-section")[0].children[3].children[1].children[3].children.forEach((team) => {
+            if (team.type !== "text" && team.children[3].children[0].attribs.href === url) {
+                var rank = team.children[1].children[0].children[0].children[0].data;
                 if (!rank) {
-                    throw ('Rank not found.');
+                    throw ("Rank not found.");
                 }
                 teamrank = rank.slice(0, rank.length - 1);
             }
-        }
+        })
         team.rank = +teamrank;
         var InitialAndName = this.getInitialAndTeamname(name.split(" "));
         team.name = InitialAndName[1];
         team.initial = InitialAndName[0];
-        var TeamPlayers = $('.content-portrait-grid-l');
-        for (let index = 0; index < TeamPlayers.find('li').length - 1; index++) {
-            var playernamecheck = TeamPlayers.find('li')[index]?.children[3]?.children[0]?.children[0]?.data;
-            var playeridcheck = TeamPlayers.find('li .txt-info')[index]?.children[1]?.children[0]?.data;
+        var TeamPlayers = $(".content-portrait-grid-l");
+        for (let index = 0; index < TeamPlayers.find("li").length - 1; index++) {
+            var playernamecheck = TeamPlayers.find("li")[index]?.children[3]?.children[0]?.children[0]?.data;
+            var playeridcheck = TeamPlayers.find("li .txt-info")[index]?.children[1]?.children[0]?.data;
             if (!playeridcheck) {
-                throw ('Player ID not found.');
+                throw ("Player ID not found.");
             }
             if (!playernamecheck) {
-                throw ('Player name not found.');
+                throw ("Player name not found.");
             }
             var playername = playernamecheck;
             var playerid = playeridcheck;
-            var inSeasonActiveString = TeamPlayers.find('li .txt-info')[index].children[4].children[0].data;
+            var inSeasonActiveString = TeamPlayers.find("li .txt-info")[index].children[4].children[0].data;
             var inSeasonActive: boolean;
-            var teamRole = TeamPlayers.find('li .txt-subtitle')[index].children[0].data;
+            var teamRole = TeamPlayers.find("li .txt-subtitle")[index].children[0].data;
             if (!inSeasonActiveString) {
                 throw ("Player activestatus not found");
             }
@@ -319,7 +318,7 @@ export class Csgo99Damage {
             } else {
                 inSeasonActive = false;
             }
-            var player: IPlayer = { name: playername, steamId: new SteamID(playerid.replace('steam', 'STEAM')), inSeasonActive, teamRole };
+            var player: IPlayer = { name: playername, steamId: new SteamID(playerid.replace("steam", "STEAM")), inSeasonActive, teamRole };
             team.players.push(player);
         }
         return team;
@@ -330,14 +329,14 @@ export class Csgo99Damage {
         var Teamname: string = "";
         var Initialname: string = "";
         var initialstart: boolean = false;
-        for (let index = 0; index < splittedname.length; index++) {
-            if (splittedname[index][0] != "(" && initialstart === false) {
-                Teamname += splittedname[index] + " ";
+        splittedname.forEach((name) => {
+            if (name[0] !== "(" && initialstart === false) {
+                Teamname += name + " ";
             } else {
                 initialstart = true;
-                Initialname += splittedname[index] + " ";
+                Initialname += name + " ";
             }
-        }
+        })
         initialAndTeamname.push(Initialname.slice(1, Initialname.length - 2))
         initialAndTeamname.push(Teamname.slice(0, Teamname.length - 1));
         return initialAndTeamname;
