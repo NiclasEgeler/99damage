@@ -1,21 +1,21 @@
-import axios, { AxiosResponse } from 'axios';
-import { stringify } from 'querystring';
-import { JsonDB } from 'node-json-db';
-import * as cheerio from 'cheerio';
-import { IMatch } from './model/match';
-import { ITeam } from './model/team';
-import { ISeason } from './model/season'
-import { Data } from './model/ajax.model';
-import SteamID from 'steamid';
-import { IPlayer } from './model/player';
-import { IPlayday } from './model/playday';
-import { ILineup } from './model/lineup';
-import { ILineupplayer } from './model/lineupplayer';
+import axios, { AxiosResponse } from "axios";
+import { stringify } from "querystring";
+import { JsonDB } from "node-json-db";
+import * as cheerio from "cheerio";
+import { IMatch } from "./model/match";
+import { ITeam } from "./model/team";
+import { ISeason } from "./model/season";
+import { Data } from "./model/ajax.model";
+import SteamID from "steamid";
+import { IPlayer } from "./model/player";
+import { IPlayday } from "./model/playday";
+import { ILineup } from "./model/lineup";
+import { ILineupplayer } from "./model/lineupplayer";
 
 export class Csgo99Damage {
 
     private token: string;
-
+    private static username: string = "";
     constructor(token: string) {
         this.token = token;
     }
@@ -26,9 +26,11 @@ export class Csgo99Damage {
     public static async login(username: string, password: string): Promise<Csgo99Damage> {
         // Read Key from Db if aviable
         // If key exists
-        var db = new JsonDB('db.json');
-        if (db.exists(`/${username}/key`) && db.exists(`/${username}/date`) && new Date(db.getData(`/${username}/date`)) > new Date()) {
-            var token = db.getData(`/${username}/key`);
+        Csgo99Damage.username = username;
+        var token: string;
+        var db = new JsonDB("db.json");
+        if (db.exists(`/${Csgo99Damage.username}/key`) && db.exists(`/${Csgo99Damage.username}/date`) && new Date(db.getData(`/${Csgo99Damage.username}/date`)) > new Date()) {
+            token = db.getData(`/${username}/key`);
             return new Csgo99Damage(token);
         }
         else {
@@ -39,22 +41,22 @@ export class Csgo99Damage {
                 passwd: password,
                 language: 'de'
             };
-            var axiosReturn = await axios.post('https://liga.99damage.de/ajax/gsnet', stringify(data), {
+            var axiosReturn = await axios.post("https://liga.99damage.de/ajax/gsnet", stringify(data), {
                 headers: {
-                    'origin': 'https://liga.99damage.de',
-                    'referer': 'https://liga.99damage.de/de/start'
+                    "origin": "https://liga.99damage.de",
+                    "referer": "https://liga.99damage.de/de/start"
                 }
             });
             if (axiosReturn.data?.err) {
                 throw (axiosReturn.data.err);
             }
-            var sessionInfo = axiosReturn.headers['set-cookie'][1].split(';');
-            var token = sessionInfo[0].substr(sessionInfo[0].indexOf('=') + 1, sessionInfo[0].length);
-            var expireDate = new Date(sessionInfo[1].substr(sessionInfo[1].indexOf('=') + 1, sessionInfo[1].length));
-            db.push(`/${username}/key`, token);
-            db.push(`/${username}/date`, expireDate);
+            var sessionInfo = axiosReturn.headers["set-cookie"][1].split(';');
+            token = sessionInfo[0].substr(sessionInfo[0].indexOf("=") + 1, sessionInfo[0].length);
+            var expireDate = new Date(sessionInfo[1].substr(sessionInfo[1].indexOf("=") + 1, sessionInfo[1].length));
+            db.push(`/${Csgo99Damage.username}/key`, token);
+            db.push(`/${Csgo99Damage.username}/date`, expireDate);
             return new Csgo99Damage(token);
-        };
+        }
     }
 
     /**
@@ -63,85 +65,85 @@ export class Csgo99Damage {
      */
     public async getCurrentMatch(): Promise<IMatch> {
         var match: IMatch;
-        var $ = await this.loadSiteWithCookie('https://liga.99damage.de/de/start');
+        var $ = await this.loadSiteWithCookie("https://liga.99damage.de/de/start");
         var userInfo = $('.landing-league-user');
-        var currentMatch = userInfo.find('h3:contains(Aktuelles Match)').parent().find('.txt-content a')[0]?.attribs?.href;
-        if (currentMatch)
+        var currentMatch = userInfo.find("h3:contains(Aktuelles Match)").parent().find(".txt-content a")[0]?.attribs?.href;
+        if (currentMatch) {
             match = await Csgo99Damage.getMatchInfo(currentMatch);
-        else
-            throw ('No current match found');
-        return match;
+        } else {
+            throw ("No current match found");
+        }
+        return match; 
     }
 
     /**
      * getMatchInfo
      * Requires no login
      */
-    public static async getMatchInfo(url: string): Promise<IMatch> {
-        var $ = await this.loadSite(url);
-        var title = $('.page-title').find('h1').text();
-        var matchId = url.match(/(?<=\/)\d+/);
+    public static async getMatchInfo(matchUrl: string): Promise<IMatch> {
+        var $ = await this.loadSite(matchUrl);
+        var matchName = $('.page-title').find("h1").text();
+        var matchId = matchUrl.match(/(?<=\/)\d+/);
         var result = await axios.get<Data>(`https://liga.99damage.de/ajax/leagues_match?id=${matchId}&action=lineup_get&language=de`);
-        var teams = $('.content-match-head-team-titles a')
+        var teams = $('.content-match-head-team-titles a');
         var leftTeam = await this.getTeamByURL(teams[0].attribs.href);
         var rightTeam = await this.getTeamByURL(teams[1].attribs.href);
-        var lineups = await this.getLineups(result, $);
+        var lineups = await this.getLineups(result);
         var leftlineup: ILineupplayer[] = lineups.leftTeam;
         var rightlineup: ILineupplayer[] = lineups.rightTeam;
         var matchDate = new Date(+result.data.time * 1000);
         return {
-            matchDate: matchDate,
-            matchName: title,
-            matchUrl: url,
-            leftTeam: leftTeam,
-            rightTeam: rightTeam,
+            matchDate,
+            matchName,
+            matchUrl,
+            leftTeam,
+            rightTeam,
             leftlineup,
             rightlineup
         } as IMatch;
     }
 
-
-    private static async getLineups(ajax: AxiosResponse<Data>, $: CheerioStatic): Promise<ILineup> {
+    private static async getLineups(ajax: AxiosResponse<Data>): Promise<ILineup> {
         var lineups: ILineup = { rightTeam: [], leftTeam: [] };
         var ready: boolean;
         var standin: boolean;
         var confirmed: boolean;
-        for (let index = 0; index < ajax.data.lineups['1'].length; index++) {
-            if (ajax.data.lineups['1'][index].ready == 0) {
+        for (let index = 0; index < ajax.data.lineups["1"].length; index++) {
+            if (ajax.data.lineups["1"][index].ready === 0) {
                 ready = false;
             } else {
                 ready = true;
             }
-            if (ajax.data.lineups['1'][index].standin == 0) {
+            if (ajax.data.lineups["1"][index].standin === 0) {
                 standin = false;
             } else {
                 standin = true;
             }
-            if (ajax.data.lineups['1'][index].status_stu.msg == "Bestätigter Spieler") {
+            if (ajax.data.lineups["1"][index].status_stu.msg === "Bestätigter Spieler") {
                 confirmed = true;
             } else {
                 confirmed = false;
             }
-            lineups.leftTeam.push({ name: ajax.data.lineups['1'][index].name, steamId: new SteamID(ajax.data.lineups['1'][index].gameaccounts[0].replace('steam', 'STEAM')), standin, ready, confirmed });
+            lineups.leftTeam.push({ name: ajax.data.lineups["1"][index].name, steamId: new SteamID(ajax.data.lineups["1"][index].gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
         }
 
-        for (let index = 0; index < ajax.data.lineups['2'].length; index++) {
-            if (ajax.data.lineups['2'][index].ready == 0) {
+        for (let index = 0; index < ajax.data.lineups["2"].length; index++) {
+            if (ajax.data.lineups["2"][index].ready === 0) {
                 ready = false;
             } else {
                 ready = true;
             }
-            if (ajax.data.lineups['2'][index].standin == 0) {
+            if (ajax.data.lineups["2"][index].standin === 0) {
                 standin = false;
             } else {
                 standin = true;
             }
-            if (ajax.data.lineups['2'][index].status_stu.msg == "Bestätigter Spieler") {
+            if (ajax.data.lineups["2"][index].status_stu.msg === "Bestätigter Spieler") {
                 confirmed = true;
             } else {
                 confirmed = false;
             }
-            lineups.rightTeam.push({ name: ajax.data.lineups['2'][index].name, steamId: new SteamID(ajax.data.lineups['2'][index].gameaccounts[0].replace('steam', 'STEAM')), standin, ready, confirmed });
+            lineups.rightTeam.push({ name: ajax.data.lineups["2"][index].name, steamId: new SteamID(ajax.data.lineups["2"][index].gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
         }
         return lineups;
     }
