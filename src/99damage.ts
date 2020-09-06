@@ -129,7 +129,7 @@ export class Csgo99Damage {
                 } else {
                     lineups.rightTeam.push({ name: player.name, steamId: new SteamID(player.gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
                 }
-            })
+            });
         });
         return lineups;
     }
@@ -180,16 +180,22 @@ export class Csgo99Damage {
 
     public static async getAllPlaydaysByDivisionURL(url: string): Promise<IPlayday[]> {
         var playdays: IPlayday[] = [];
+        var playday: IPlayday = { Matches: [], Playday: 0 };
         var $ = await this.loadSite(url);
         for (let i = 0; i < $("h3").length - 2; i++) {
-            var playday: IPlayday = { Matches: [], Playday: 0 };
             var playdaynumber = $("h3")[i].children[0].data?.split(" ")[1];
             if (!playdaynumber) {
                 throw ("No playday");
             }
             playday.Playday = +playdaynumber;
-            playday.Matches.push(await this.getMatchInfo($("h3")[i].parent.children[3].children[1].children[1].children[1].children[0].attribs.href));
+            for (let index = 0; index < $("h3")[i].parent.children[3].children[1].children.length; index++) {
+                const match = $("h3")[i].parent.children[3].children[1].children[index];
+                if (match.type !== "text") {
+                    playday.Matches.push(await this.getMatchInfo(match.children[1].children[0].attribs.href));
+                }
+            }
             playdays.push(playday);
+            playday = { Matches: [], Playday: 0}
         }
         return playdays;
     }
@@ -200,11 +206,10 @@ export class Csgo99Damage {
      * If starter division "Starter 1" else just ex: "5.1" 
      */
     public static async getTeamsByDivision(division: string): Promise<ITeam[]> {
-        var teams: ITeam[] = [];
         var site = await axios.get("https://liga.99damage.de/de/leagues/99dmg");
         var $ = cheerio.load(site.data);
         var link: string = "";
-        var selecteddivision: CheerioElement[] = [];
+        var selecteddivision: CheerioElement[];
         //Get all Tables
         var sections = $(".content-subsection-toggle");
         //If searched Division is Starter ->
@@ -248,7 +253,7 @@ export class Csgo99Damage {
         var teams: ITeam[] = [];
         var divisionsite = await axios.get(url);
         var $ = cheerio.load(divisionsite.data);
-        var teamstable = $('.section-content')[0].children[1].children[3].children;
+        var teamstable = $(".section-content")[0].children[1].children[3].children;
         teamstable.forEach(async (team) => {
             if (team.type === "tag") {
                 var singleteam = await Csgo99Damage.getTeamByURL(team.children[3].children[0].attribs.href);
@@ -256,7 +261,7 @@ export class Csgo99Damage {
                     teams.push(singleteam);
                 }
             }
-        })
+        });
         return teams;
     }
 
@@ -275,7 +280,7 @@ export class Csgo99Damage {
         if (!name) {
             throw ("Team not found.");
         }
-        var divisionurl = $('.content-icon-info')[0].children[1].children[2].attribs.href;
+        var divisionurl = $(".content-icon-info")[0].children[1].children[2].attribs.href;
         var divisionsite = await axios.get(divisionurl);
         var $division = cheerio.load(divisionsite.data);
         var teamrank = "";
@@ -287,7 +292,7 @@ export class Csgo99Damage {
                 }
                 teamrank = rank.slice(0, rank.length - 1);
             }
-        })
+        });
         team.rank = +teamrank;
         var InitialAndName = this.getInitialAndTeamname(name.split(" "));
         team.name = InitialAndName[1];
@@ -336,7 +341,7 @@ export class Csgo99Damage {
                 initialstart = true;
                 Initialname += name + " ";
             }
-        })
+        });
         initialAndTeamname.push(Initialname.slice(1, Initialname.length - 2))
         initialAndTeamname.push(Teamname.slice(0, Teamname.length - 1));
         return initialAndTeamname;
