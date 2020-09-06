@@ -195,7 +195,7 @@ export class Csgo99Damage {
                 }
             }
             playdays.push(playday);
-            playday = { Matches: [], Playday: 0}
+            playday = { Matches: [], Playday: 0};
         }
         return playdays;
     }
@@ -342,7 +342,7 @@ export class Csgo99Damage {
                 Initialname += name + " ";
             }
         });
-        initialAndTeamname.push(Initialname.slice(1, Initialname.length - 2))
+        initialAndTeamname.push(Initialname.slice(1, Initialname.length - 2));
         initialAndTeamname.push(Teamname.slice(0, Teamname.length - 1));
         return initialAndTeamname;
     }
@@ -350,7 +350,7 @@ export class Csgo99Damage {
     private async loadSiteWithCookie(url: string): Promise<CheerioStatic> {
         var site = await axios.get(url, {
             headers: {
-                'cookie': `freakms_login_token=${this.token}`
+                "cookie": `freakms_login_token=${this.token}`
             }
         });
         var $ = cheerio.load(site.data);
