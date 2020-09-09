@@ -9,7 +9,7 @@
 
 ### How to use 
 ```
-import { Csgo99Damage } from "99damage/src/99damage";
+import { Csgo99Damage } from "99damage/lib/99damage";
 
 Csgo99Damage.login("username", "password").then(async (user) => {
     var season = await user.getCurrentSeason();
