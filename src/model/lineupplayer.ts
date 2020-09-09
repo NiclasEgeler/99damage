@@ -1,6 +1,6 @@
-import SteamID from "steamid";
+import SteamID = require("steamid");
 
-export interface ILineupplayer{
+export interface ILineupPlayer {
     name: string;
     steamId: SteamID;
     standin: boolean;

@@ -6,11 +6,11 @@ import { IMatch } from "./model/match";
 import { ITeam } from "./model/team";
 import { ISeason } from "./model/season";
 import { Data } from "./model/ajax.model";
-import SteamID from "steamid";
+import SteamID = require("steamid");
 import { IPlayer } from "./model/player";
 import { IPlayday } from "./model/playday";
 import { ILineup } from "./model/lineup";
-import { ILineupplayer } from "./model/lineupplayer";
+import { ILineupPlayer } from "./model/lineupplayer";
 
 export class Csgo99Damage {
     private token: string;
@@ -87,8 +87,8 @@ export class Csgo99Damage {
         var leftTeam = await this.getTeamByURL(teams[0].attribs.href);
         var rightTeam = await this.getTeamByURL(teams[1].attribs.href);
         var lineups = await this.getLineups(result);
-        var leftlineup: ILineupplayer[] = lineups.leftTeam;
-        var rightlineup: ILineupplayer[] = lineups.rightTeam;
+        var leftlineup: ILineupPlayer[] = lineups.leftTeam;
+        var rightlineup: ILineupPlayer[] = lineups.rightTeam;
         var matchDate = new Date(+result.data.time * 1000);
         return {
             matchDate,
@@ -195,7 +195,7 @@ export class Csgo99Damage {
                 }
             }
             playdays.push(playday);
-            playday = { Matches: [], Playday: 0};
+            playday = { Matches: [], Playday: 0 };
         }
         return playdays;
     }

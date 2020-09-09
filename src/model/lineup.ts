@@ -1,7 +1,7 @@
 import { IPlayer } from "./player";
-import { ILineupplayer } from "./lineupplayer";
+import { ILineupPlayer } from "./lineupplayer";
 
 export interface ILineup{
-    rightTeam: ILineupplayer[];
-    leftTeam: ILineupplayer[];
+    rightTeam: ILineupPlayer[];
+    leftTeam: ILineupPlayer[];
 }

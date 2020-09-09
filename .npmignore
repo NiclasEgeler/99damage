@@ -1,5 +1,5 @@
 node_modules/
-lib/
+src/
 nodemon.json
 db.json
 test.ts
