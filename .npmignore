@@ -3,3 +3,4 @@ src/
 nodemon.json
 db.json
 test.ts
+tsconfig.json
