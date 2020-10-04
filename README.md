@@ -1,7 +1,7 @@
 # 99damage
 ## A NodeJS API for [liga.99damage.de](http://liga.99damage.de)
 
-![Logo](https://i.imgur.com/eVK4s5U.png)
+![Logo](https://raw.githubusercontent.com/NiclasEgeler/99damage/master/99dmg%20logo.png)
 
 [![npm](https://img.shields.io/npm/dt/99damage.svg?maxAge=604800)](https://www.npmjs.com/package/99damage)
 [![npm](https://img.shields.io/npm/dm/99damage.svg?maxAge=604800)](https://www.npmjs.com/package/99damage)
