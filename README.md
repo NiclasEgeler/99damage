@@ -2,7 +2,7 @@
 ## A NodeJS API for [liga.99damage.de](http://liga.99damage.de)
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/NiclasEgeler/99damage/master/99dmg%20logo.png" width="150">
+  <img src="https://raw.githubusercontent.com/NiclasEgeler/99damage/master/logo.png" width="150">
 </p>
 
 
@@ -22,6 +22,6 @@ Csgo99Damage.login("username", "password").then(async (user) => {
     var division21Teams = await Csgo99Damage.getTeamsByDivision("2.1");
     var starter20Teams = await Csgo99Damage.getTeamsByDivision("Starter 20");
     var division1Teams = await Csgo99Damage.getTeamsByDivision("1");
-    ...
+    // ...
 });
 ```
