@@ -8,7 +8,7 @@
 ```npm install 99damage```
 
 ### How to use 
-```
+```typescript
 import { Csgo99Damage } from "99damage/src/99damage";
 
 Csgo99Damage.login("username", "password").then(async (user) => {
