@@ -31,7 +31,9 @@ pipeline {
         }
         stage('Publish') {
             steps {
-                scripts {
+                load "$JENKINS_HOME/jobvars.env"
+
+                withEnv(["TOKEN=${NPMJS_TOKEN}"]) {
                     sh 'npm publish'
                 }
             }
