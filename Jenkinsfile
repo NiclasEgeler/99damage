@@ -9,7 +9,7 @@ pipeline {
         stage('Init'){
             steps {
                 script {
-                    sh 'cd .. && npm ci'
+                    sh 'npm ci'
                 }
             }
         }
