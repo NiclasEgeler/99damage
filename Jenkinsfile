@@ -24,6 +24,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
+                    sh 'npm install -g npm@latest'
                     sh 'npx build'
                 }
             }
