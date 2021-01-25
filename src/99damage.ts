@@ -6,7 +6,6 @@ import { IMatch } from "./model/match";
 import { ITeam } from "./model/team";
 import { ISeason } from "./model/season";
 import { Data } from "./model/ajax.model";
-import SteamID = require("steamid");
 import { IPlayday } from "./model/playday";
 import { ILineup } from "./model/lineup";
 
@@ -117,9 +116,9 @@ export class Csgo99Damage {
                     confirmed = false;
                 }
                 if (i === 0) {
-                    lineups.leftTeam.push({ name: player.name, steamId: new SteamID(player.gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
+                    lineups.leftTeam.push({ name: player.name, steamId: player.gameaccounts[0].replace("steam", "STEAM"), standin, ready, confirmed });
                 } else {
-                    lineups.rightTeam.push({ name: player.name, steamId: new SteamID(player.gameaccounts[0].replace("steam", "STEAM")), standin, ready, confirmed });
+                    lineups.rightTeam.push({ name: player.name, steamId: player.gameaccounts[0].replace("steam", "STEAM"), standin, ready, confirmed });
                 }
             });
         });
@@ -305,7 +304,7 @@ export class Csgo99Damage {
             // TeamRole
             var teamRole = context.find(".txt-subtitle").text();
             // Add player to team
-            team.players.push({ name: playerName, steamId: new SteamID(playerId), inSeasonActive, teamRole });
+            team.players.push({ name: playerName, steamId: playerId, inSeasonActive, teamRole });
         });
 
         return team;

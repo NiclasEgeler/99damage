@@ -2,7 +2,7 @@ import SteamID = require("steamid");
 
 export interface ILineupPlayer {
     name: string;
-    steamId: SteamID;
+    steamId: string;
     standin: boolean;
     confirmed: boolean;
     ready: boolean;
