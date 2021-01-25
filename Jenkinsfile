@@ -23,7 +23,8 @@ pipeline {
         }
         stage('Build') {
             steps {
-                script {
+                load "$JENKINS_HOME/jobvars.env"
+                withEnv(["TOKEN=${NPMJS_TOKEN}"]) {
                     sh 'npm install -g npm@latest'
                     sh 'npx build'
                 }
@@ -31,9 +32,7 @@ pipeline {
         }
         stage('Publish') {
             steps {
-                load "$JENKINS_HOME/jobvars.env"
-
-                withEnv(["TOKEN=${NPMJS_TOKEN}"]) {
+                script {
                     sh 'npm publish'
                 }
             }
