@@ -4,3 +4,5 @@ nodemon.json
 db.json
 test.ts
 tsconfig.json
+ci/
+.npmrc
