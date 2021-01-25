@@ -24,7 +24,6 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    sh 'npm install -g npm@latest'
                     sh 'npx tsc'
                 }
             }
@@ -33,8 +32,9 @@ pipeline {
             steps {
                 load "$JENKINS_HOME/jobvars.env"
 
-                withEnv(["TOKEN=${NPMJS_TOKEN}"]) {
-                    sh 'echo "//registry.npmjs.org/:_authToken=${TOKEN}" >> ~/.npmrc'
+                withEnv(["NPM_TOKEN=${NPMJS_TOKEN}"]) {
+                    sh 'echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc'
+                    sh 'npm config ls'
                     sh 'npm publish'
                 }
             }
