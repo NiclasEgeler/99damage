@@ -205,7 +205,7 @@ export class Csgo99Damage {
      */
     public static async getTeamsByDivision(division: string): Promise<ITeam[] | undefined> {
         var teamUrl: string | undefined;
-        var validDivision = /(((Div )|(Division )){0,1}[1-9].[0-9]+)|(Starter [1-9][0-9]+)|1/g
+        var validDivision = /(((Div )|(Division )){0,1}[1-9].[0-9]+)|(Starter [1-9][0-9]{0,})|1/g
         if (!division.match(validDivision)) {
             console.log("Invalid division");
             return undefined;
