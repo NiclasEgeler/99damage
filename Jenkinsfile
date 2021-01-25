@@ -9,7 +9,7 @@ pipeline {
         stage('Init'){
             steps {
                 script {
-                    sh 'npm ci'
+                    sh 'npm i'
                 }
             }
         }
@@ -24,7 +24,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    sh 'npm run build'
+                    sh 'npx build'
                 }
             }
         }
