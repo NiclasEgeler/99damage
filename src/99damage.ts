@@ -7,7 +7,6 @@ import { ITeam } from "./model/team";
 import { ISeason } from "./model/season";
 import { Data } from "./model/ajax.model";
 import SteamID = require("steamid");
-import { IPlayer } from "./model/player";
 import { IPlayday } from "./model/playday";
 import { ILineup } from "./model/lineup";
 import { ILineupPlayer } from "./model/lineupplayer";
@@ -61,7 +60,7 @@ export class Csgo99Damage {
      * getCurrentMatch
      * Requires login
      */
-    public async getCurrentMatch(): Promise<IMatch> {
+    public async getCurrentMatch(): Promise<IMatch | null> {
         var match: IMatch;
         var $ = await this.loadSiteWithCookie("https://liga.99damage.de/de/start");
         var userInfo = $(".landing-league-user");
@@ -69,7 +68,7 @@ export class Csgo99Damage {
         if (currentMatch) {
             match = await Csgo99Damage.getMatchInfo(currentMatch);
         } else {
-            throw ("No current match found");
+            return null;
         }
         return match;
     }
@@ -201,52 +200,36 @@ export class Csgo99Damage {
     }
 
     /**
-     * getTeamsByDivision
-     * @param division 
-     * If starter division "Starter 1" else just ex: "5.1" 
+     * Gets all the teams from a division.
+     * @param division Format: "Div 2.2", "2.2", "1", "Division 2.1", "Starter 1"
      */
-    public static async getTeamsByDivision(division: string): Promise<ITeam[]> {
+    public static async getTeamsByDivision(division: string): Promise<ITeam[] | undefined> {
+        var teamUrl: string | undefined;
+        var validDivision = /(((Div )|(Division )){0,1}[1-9].[0-9]+)|(Starter [1-9][0-9]+)|1/g
+        if (!division.match(validDivision)) {
+            console.log("Invalid division");
+            return undefined;
+        }
+
         var site = await axios.get("https://liga.99damage.de/de/leagues/99dmg");
         var $ = cheerio.load(site.data);
-        var link: string = "";
-        var selecteddivision: CheerioElement[];
-        //Get all Tables
-        var sections = $(".content-subsection-toggle");
-        //If searched Division is Starter ->
-        if (division.includes("Starter")) {
-            selecteddivision = $(".content-link-grid")[$(".content-link-grid").length - 1].children;
-            link = this.filterdDivision(selecteddivision, division, false);
-            //Check if searched Division is above division 2, because of differentials in the table structure
-        } else if (+division.split(".")[0] > 2) {
-            selecteddivision = sections[+division.split(".")[0] - 1].parent.children[3].children[1].children;
-            link = this.filterdDivision(selecteddivision, division, false);
-            //Check if its Division 2
-        } else if (+division.split(".")[0] === 2) {
-            selecteddivision = $(".content-subsection-container").find(".widget-list-boxed")[0].children;
-            link = this.filterdDivision(selecteddivision, division, true);
-            //Has to be Division 1
+
+        if (division.match(/(^1)|((Div|Division) 1)/)) {
+            teamUrl = $(`*:contains("Gruppe: Division 1")`).last().children()[0]?.attribs?.href;
+        } else if (division.match(/^2|((Div|Division) 2)/)) {
+            teamUrl = $(`*:contains("${Csgo99Damage.getDivisionString(division)}")`).last()[0]?.parent?.attribs?.href
         } else {
-            link = sections[0].parent.children[3].children[1].children[0].children[1].attribs.href;
+            teamUrl = $(`*:contains("${Csgo99Damage.getDivisionString(division)}")`).last()[0]?.attribs?.href
         }
-        return await this.getTeamArray(link);
+        return teamUrl != undefined ? this.getTeamArray(teamUrl) : undefined;
     }
 
-    private static filterdDivision(division: CheerioElement[], searcheddivision: string, division2: boolean): string {
-        var link: string = "";
-        division.some((selecteddivision) => {
-            if (division2) {
-                if (selecteddivision.name === "li" && selecteddivision?.children[0]?.children[1]?.children[0]?.children[0]?.data?.split(" ")[1] === searcheddivision) {
-                    link = selecteddivision.children[0]?.children[1].attribs.href;
-                    return true;
-                }
-            } else {
-                if (selecteddivision.name === "li" && selecteddivision?.children[0]?.children[0]?.data?.split(" ")[1] === searcheddivision) {
-                    link = selecteddivision.children[0].attribs.href;
-                    return true;
-                }
-            }
-        });
-        return link;
+    private static getDivisionString(input: string): string {
+        if (input.split(' ')[1]) {
+            return input.split(' ')[1];
+        } else {
+            return input;
+        }
     }
 
     private static async getTeamArray(url: string): Promise<ITeam[]> {
@@ -254,78 +237,81 @@ export class Csgo99Damage {
         var divisionsite = await axios.get(url);
         var $ = cheerio.load(divisionsite.data);
         var teamstable = $(".section-content")[0].children[1].children[3].children;
-        teamstable.forEach(async (team) => {
-            if (team.type === "tag") {
-                var singleteam = await Csgo99Damage.getTeamByURL(team.children[3].children[0].attribs.href);
-                if (singleteam.name !== "Team nicht gefunden") {
-                    teams.push(singleteam);
-                }
+        // Loop through teams and create request.
+        var allPromises: Promise<ITeam | undefined>[] = [];
+        for (let index = 0; index < teamstable.length; index++) {
+            if (teamstable[index].type === "tag") {
+                allPromises.push(Csgo99Damage.getTeamByURL(teamstable[index].children[3].children[0].attribs.href));
             }
-        });
+        }
+        var allTeams = await Promise.all(allPromises)
+        allTeams.forEach((team) => {
+            if (team)
+                teams.push(team);
+        })
         return teams;
     }
 
-    public static async getTeamByURL(url: string): Promise<ITeam> {
+    /**
+     * Returns team details.
+     * @param url 99damage team url
+     * @return `ITeam | undefined` Undefined if the team no longer exists 
+     */
+    public static async getTeamByURL(url: string): Promise<ITeam | undefined> {
+        // Create empty team object
         var team: ITeam = { name: "", rank: 0, players: [], country: "", initial: "" };
-        var site = await axios.get(url, { validateStatus: () => true });
-        var $ = cheerio.load(site.data);
-        var basicinformation = $(".content-basic-info");
-        var country = basicinformation.find(".txt-info")[0].parent.children[1].data;
-        if (!country) {
-            throw ("Country not found.");
-        }
-        team.country = country;
-        var TeamName = $(".page-title");
-        var name = TeamName.find("h1")[0].children[0].data;
+        var $ = await this.loadSite(url)
+
+
+        // Find TeamName
+        var name = $("main > .page-title > h1:not(:contains('Team nicht gefunden'))").text();
+
+        // Check if team exists
         if (!name) {
-            throw ("Team not found.");
+            return undefined;
         }
-        var divisionurl = $(".content-icon-info")[0].children[1].children[2].attribs.href;
-        var divisionsite = await axios.get(divisionurl);
-        var $division = cheerio.load(divisionsite.data);
-        var teamrank = "";
-        $division(".list-section")[0].children[3].children[1].children[3].children.forEach((team) => {
-            if (team.type !== "text" && team.children[3].children[0].attribs.href === url) {
-                var rank = team.children[1].children[0].children[0].children[0].data;
-                if (!rank) {
-                    throw ("Rank not found.");
-                }
-                teamrank = rank.slice(0, rank.length - 1);
-            }
-        });
-        team.rank = +teamrank;
-        var InitialAndName = this.getInitialAndTeamname(name.split(" "));
-        team.name = InitialAndName[1];
-        team.initial = InitialAndName[0];
-        var TeamPlayers = $(".content-portrait-grid-l");
-        for (let index = 0; index < TeamPlayers.find("li").length - 1; index++) {
-            var playernamecheck = TeamPlayers.find("li")[index]?.children[3]?.children[0]?.children[0]?.data;
-            var playeridcheck = TeamPlayers.find("li .txt-info")[index]?.children[1]?.children[0]?.data;
-            if (!playeridcheck) {
-                throw ("Player ID not found.");
-            }
-            if (!playernamecheck) {
-                throw ("Player name not found.");
-            }
-            var playername = playernamecheck;
-            var playerid = playeridcheck;
-            var inSeasonActiveString = TeamPlayers.find("li .txt-info")[index].children[4].children[0].data;
-            var inSeasonActive: boolean;
-            var teamRole = TeamPlayers.find("li .txt-subtitle")[index].children[0].data;
-            if (!inSeasonActiveString) {
-                throw ("Player activestatus not found");
-            }
-            if (!teamRole) {
-                throw ("Player teamrole not found");
-            }
-            if (inSeasonActiveString === "Bestätigter Spieler") {
+
+        // Remove teamShortName f.e. Team ABC (ABC)
+        var match = name.match(/(.*)( \(.*\)$)/);
+        if (match)
+            team.name = match[1];
+
+        // Get team initial and team name
+        var initialandname = this.getInitialAndTeamname(name.split(" "));
+        team.name = initialandname[1]
+        team.initial = initialandname[0]
+
+        // Set country of the team
+        team.country = $(".content-basic-info > li > div:contains('Land')").parent().text().split(':')[1]
+
+        // Get rank of the team in the season and set it
+        var rank = $(".wide > .txt-content:contains('Rang')")?.text();
+        team.rank = -1;
+        if (rank) {
+            var match = rank.match(/(Rang: )([0-9]+)/)
+            if (match)
+                team.rank = +match[2];
+        }
+
+        // Get team players
+        var teamPlayers = $(".content-portrait-grid-l > li").each((i, e) => {
+            // Loop through players and read info
+            var context = $(e);
+            // Playername
+            var playerName = context.find("h3").text();
+            // Season player status
+            var inSeasonActive = false;
+            var statusText = context.find(".txt-status-positive").text();
+            if (statusText && statusText !== "")
                 inSeasonActive = true;
-            } else {
-                inSeasonActive = false;
-            }
-            var player: IPlayer = { name: playername, steamId: new SteamID(playerid.replace("steam", "STEAM")), inSeasonActive, teamRole };
-            team.players.push(player);
-        }
+            // SteamId
+            var playerId = context.find("span[title*='Steam ID']").text().replace("steam", "STEAM");
+            // TeamRole
+            var teamRole = context.find(".txt-subtitle").text();
+            // Add player to team
+            team.players.push({ name: playerName, steamId: new SteamID(playerId), inSeasonActive, teamRole });
+        });
+
         return team;
     }
 
@@ -358,7 +344,7 @@ export class Csgo99Damage {
     }
 
     private static async loadSite(url: string): Promise<CheerioStatic> {
-        var site = await axios.get(url);
+        var site = await axios.get(url, { validateStatus: () => true });
         var $ = cheerio.load(site.data);
         return $;
     }
