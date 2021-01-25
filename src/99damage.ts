@@ -9,7 +9,6 @@ import { Data } from "./model/ajax.model";
 import SteamID = require("steamid");
 import { IPlayday } from "./model/playday";
 import { ILineup } from "./model/lineup";
-import { ILineupPlayer } from "./model/lineupplayer";
 
 export class Csgo99Damage {
     private token: string;
@@ -79,24 +78,18 @@ export class Csgo99Damage {
      */
     public static async getMatchInfo(matchUrl: string): Promise<IMatch> {
         var $ = await this.loadSite(matchUrl);
-        var matchName = $(".page-title").find("h1").text();
         var matchId = matchUrl.split("/")[6].split("-")[0];
         var result = await axios.get<Data>(`https://liga.99damage.de/ajax/leagues_match?id=${matchId}&action=lineup_get&language=de`);
         var teams = $(".content-match-head-team-titles a");
-        var leftTeam = await this.getTeamByURL(teams[0].attribs.href);
-        var rightTeam = await this.getTeamByURL(teams[1].attribs.href);
         var lineups = await this.getLineups(result);
-        var leftlineup: ILineupPlayer[] = lineups.leftTeam;
-        var rightlineup: ILineupPlayer[] = lineups.rightTeam;
-        var matchDate = new Date(+result.data.time * 1000);
         return {
-            matchDate,
-            matchName,
+            matchDate: new Date(+result.data.time * 1000),
+            matchName: $(".page-title").find("h1").text(),
             matchUrl,
-            leftTeam,
-            rightTeam,
-            leftlineup,
-            rightlineup
+            leftTeam: await this.getTeamByURL(teams[0].attribs.href),
+            rightTeam: await this.getTeamByURL(teams[1].attribs.href),
+            leftlineup: lineups.leftTeam,
+            rightlineup: lineups.rightTeam
         } as IMatch;
     }
 
@@ -132,8 +125,6 @@ export class Csgo99Damage {
         });
         return lineups;
     }
-
-
 
     /**
      * getCurrentSeason
@@ -211,15 +202,14 @@ export class Csgo99Damage {
             return undefined;
         }
 
-        var site = await axios.get("https://liga.99damage.de/de/leagues/99dmg");
-        var $ = cheerio.load(site.data);
+        var $ = await this.loadSite("https://liga.99damage.de/de/leagues/99dmg")
 
         if (division.match(/(^1)|((Div|Division) 1)/)) {
             teamUrl = $(`*:contains("Gruppe: Division 1")`).last().children()[0]?.attribs?.href;
         } else if (division.match(/^2|((Div|Division) 2)/)) {
             teamUrl = $(`*:contains("${Csgo99Damage.getDivisionString(division)}")`).last()[0]?.parent?.attribs?.href
         } else {
-            teamUrl = $(`*:contains("${Csgo99Damage.getDivisionString(division)}")`).last()[0]?.attribs?.href
+            teamUrl = $(`*:contains("${Csgo99Damage.getDivisionString(division)}")`).toArray().filter((e) => e.children[0]?.data === `Division ${Csgo99Damage.getDivisionString(division)}`)[0]?.attribs?.href
         }
         return teamUrl != undefined ? this.getTeamArray(teamUrl) : undefined;
     }
@@ -248,7 +238,7 @@ export class Csgo99Damage {
         allTeams.forEach((team) => {
             if (team)
                 teams.push(team);
-        })
+        });
         return teams;
     }
 
@@ -277,7 +267,7 @@ export class Csgo99Damage {
             team.name = match[1];
 
         // Get team initial and team name
-        var initialandname = this.getInitialAndTeamname(name.split(" "));
+        var initialandname = this.getInitialAndTeamname(name);
         team.name = initialandname[1]
         team.initial = initialandname[0]
 
@@ -294,7 +284,7 @@ export class Csgo99Damage {
         }
 
         // Get team players
-        var teamPlayers = $(".content-portrait-grid-l > li").each((i, e) => {
+        $(".content-portrait-grid-l > li").each((i, e) => {
             // Loop through players and read info
             var context = $(e);
             // Playername
@@ -315,22 +305,35 @@ export class Csgo99Damage {
         return team;
     }
 
-    private static getInitialAndTeamname(splittedname: string[]): string[] {
-        var initialAndTeamname: string[] = [];
-        var Teamname: string = "";
-        var Initialname: string = "";
-        var initialstart: boolean = false;
-        splittedname.forEach((name) => {
-            if (name[0] !== "(" && initialstart === false) {
-                Teamname += name + " ";
+    /**
+     * Returns initialName and teamName details.
+     * @param teamTitle 99damage team title
+     * @return `string[]`
+     */
+    private static getInitialAndTeamname(teamTitle: string): string[] {
+        var teamName: string = "";
+        var initialName: string = "";
+        var initialStart: boolean = true;
+
+        // Reverse for more secure team initial names
+        teamTitle.split(' ').reverse().forEach((e, i) => {
+            if(initialStart){
+                if(e.includes('('))
+                    initialStart = false;
+                initialName += e + " ";
             } else {
-                initialstart = true;
-                Initialname += name + " ";
+                i === teamTitle.length ? teamName += e : teamName += e + " ";
             }
-        });
-        initialAndTeamname.push(Initialname.slice(1, Initialname.length - 2));
-        initialAndTeamname.push(Teamname.slice(0, Teamname.length - 1));
-        return initialAndTeamname;
+        })
+
+        // Reverse initialName back
+        initialName = initialName.split(' ').reverse().join(" ").trim();
+        initialName = initialName.slice(1, initialName.length-1)
+
+        // Reverse teamName back
+        teamName = teamName.split(' ').reverse().join(" ").trim();
+
+        return [initialName, teamName];
     }
 
     private async loadSiteWithCookie(url: string): Promise<CheerioStatic> {
