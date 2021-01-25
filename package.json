@@ -1,6 +1,6 @@
 {
   "name": "99damage",
-  "version": "1.1.11",
+  "version": "1.1.12",
   "description": "A NodeJS API for liga.99damage.de",
   "main": "index.js",
   "scripts": {
