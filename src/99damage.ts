@@ -209,7 +209,11 @@ export class Csgo99Damage {
         } else if (division.match(/^2|((Div|Division) 2)/)) {
             teamUrl = $(`*:contains("${Csgo99Damage.getDivisionString(division)}")`).last()[0]?.parent?.attribs?.href
         } else {
-            teamUrl = $(`*:contains("${Csgo99Damage.getDivisionString(division)}")`).toArray().filter((e) => e.children[0]?.data === `Division ${Csgo99Damage.getDivisionString(division)}`)[0]?.attribs?.href
+            if(division.match(/(Starter) ([0-9]?[0-9]|20)$/g)){
+                teamUrl = $(`*:contains("${Csgo99Damage.getDivisionString(division)}")`).toArray().filter((e) => e.children[0]?.data === `Starter ${Csgo99Damage.getDivisionString(division)}`)[0]?.attribs?.href
+            } else {
+                teamUrl = $(`*:contains("${Csgo99Damage.getDivisionString(division)}")`).toArray().filter((e) => e.children[0]?.data === `Division ${Csgo99Damage.getDivisionString(division)}`)[0]?.attribs?.href
+            }
         }
         return teamUrl != undefined ? this.getTeamArray(teamUrl) : undefined;
     }
@@ -268,8 +272,10 @@ export class Csgo99Damage {
 
         // Get team initial and team name
         var initialandname = this.getInitialAndTeamname(name);
-        team.name = initialandname[1]
-        team.initial = initialandname[0]
+        if(initialandname){
+            team.name = initialandname[1]
+            team.initial = initialandname[0]
+        }
 
         // Set country of the team
         team.country = $(".content-basic-info > li > div:contains('Land')").parent().text().split(':')[1]
@@ -310,30 +316,9 @@ export class Csgo99Damage {
      * @param teamTitle 99damage team title
      * @return `string[]`
      */
-    private static getInitialAndTeamname(teamTitle: string): string[] {
-        var teamName: string = "";
-        var initialName: string = "";
-        var initialStart: boolean = true;
-
-        // Reverse for more secure team initial names
-        teamTitle.split(' ').reverse().forEach((e, i) => {
-            if(initialStart){
-                if(e.includes('('))
-                    initialStart = false;
-                initialName += e + " ";
-            } else {
-                i === teamTitle.length ? teamName += e : teamName += e + " ";
-            }
-        })
-
-        // Reverse initialName back
-        initialName = initialName.split(' ').reverse().join(" ").trim();
-        initialName = initialName.slice(1, initialName.length-1)
-
-        // Reverse teamName back
-        teamName = teamName.split(' ').reverse().join(" ").trim();
-
-        return [initialName, teamName];
+    private static getInitialAndTeamname(teamTitle: string): string[] | undefined {
+        var regex = teamTitle.match(/(.*) (\(.*\))/);
+        return regex ? [regex[2], regex[1]] : undefined;
     }
 
     private async loadSiteWithCookie(url: string): Promise<CheerioStatic> {
