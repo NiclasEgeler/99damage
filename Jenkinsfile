@@ -33,8 +33,7 @@ pipeline {
                 load "$JENKINS_HOME/jobvars.env"
 
                 withEnv(["NPM_TOKEN=${NPMJS_TOKEN}"]) {
-                    sh 'echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}"em >> ~/.npmrc'
-                    sh 'npm whoami'
+                    sh 'echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" >> ~/.npmrc'
                     sh 'npm publish'
                 }
             }
