@@ -25,7 +25,7 @@ pipeline {
             steps {
                 script {
                     sh 'npm install -g npm@latest'
-                    sh 'npx build'
+                    sh 'npx tsc'
                 }
             }
         }
