@@ -16,8 +16,8 @@ pipeline {
         stage('Version Check') {
             steps {
                 script {
-                    sh 'chmod 777 ./ci/version_check.sh'
-                    sh './ci/version_check.sh'
+                    sh 'chmod 777 ci/version_check.sh'
+                    sh 'ci/version_check.sh'
                 }
             }
         }
