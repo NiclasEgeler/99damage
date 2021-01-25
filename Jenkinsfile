@@ -24,6 +24,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
+                    sh 'npm i -g npx'
                     sh 'npx build'
                 }
             }
