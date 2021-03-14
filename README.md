@@ -1,3 +1,6 @@
+[![npm](https://img.shields.io/npm/dt/99damage.svg?maxAge=604800)](https://www.npmjs.com/package/99damage)
+[![npm](https://img.shields.io/npm/dm/99damage.svg?maxAge=604800)](https://www.npmjs.com/package/99damage)
+
 <h1 align="center">
     99damage
 </h2>
@@ -7,9 +10,6 @@
 <p align="center">
     <img align="center" src="https://raw.githubusercontent.com/NiclasEgeler/99damage/master/logo.png" width="150"/>
 </p>
-
-[![npm](https://img.shields.io/npm/dt/99damage.svg?maxAge=604800)](https://www.npmjs.com/package/99damage)
-[![npm](https://img.shields.io/npm/dm/99damage.svg?maxAge=604800)](https://www.npmjs.com/package/99damage)
 
 ## How to install
 ```npm install 99damage```
