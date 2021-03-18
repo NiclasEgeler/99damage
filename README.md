@@ -11,10 +11,10 @@
     <img align="center" src="https://raw.githubusercontent.com/NiclasEgeler/99damage/master/logo.png" width="150"/>
 </p>
 
-## How to install
+## Installation
 ```npm install 99damage```
 
-### How to use 
+### Usage 
 ```typescript
 import { Csgo99Damage } from "99damage/lib/99damage";
 
